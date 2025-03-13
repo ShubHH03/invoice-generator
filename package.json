@@ -25,12 +25,12 @@
     "appId": "com.electron.electronapp",
     "productName": "Cyphersol",
     "directories": {
-        "output": "dist"
+      "output": "dist"
     },
     "publish": {
-        "provider": "github",
-        "owner": "Shama-Cyphersol",
-        "repo": "ca-offline-suite"
+      "provider": "github",
+      "owner": "Shama-Cyphersol",
+      "repo": "ca-offline-suite"
     },
     "files": [
       "frontend/electron/**/*",
@@ -74,6 +74,8 @@
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.1.0",
     "electron-updater": "^6.3.9",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable": "^5.0.2",
     "python-shell": "^5.0.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"

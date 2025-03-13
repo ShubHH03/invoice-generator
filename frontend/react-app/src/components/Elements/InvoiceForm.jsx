@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../ui/card"
 import { Input } from "../ui/input"
@@ -8,8 +6,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Button } from "../ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Textarea } from "../ui/textarea"
-import { Search, RefreshCw, Plus, ChevronDown, ChevronUp, X } from "lucide-react"
+import { Search, RefreshCw, Plus, ChevronDown, ChevronUp, X, Download } from "lucide-react"
 import { format } from "date-fns"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog"
+import { jsPDF } from "jspdf"
 
 const InvoiceForm = () => {
   // State for form fields
@@ -37,10 +46,24 @@ const InvoiceForm = () => {
     { id: "customer2", name: "Customer 2" }
   ])
 
+  // State for download dialog
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState(null)
+  const [savedInvoice, setSavedInvoice] = useState(null)
+
   // Effect to calculate amounts when items change
   useEffect(() => {
     calculateTotals()
   }, [items])
+
+  // Cleanup effect for PDF URL
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+    }
+  }, [pdfUrl])
 
   // Calculate item amount when quantity or rate changes
   const updateItemAmount = (id, quantity, rate) => {
@@ -80,6 +103,96 @@ const InvoiceForm = () => {
     }
   }
 
+  // Generate PDF invoice
+  const generateInvoicePDF = (invoice) => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const lineHeight = 8
+    
+    // Add company header
+    doc.setFontSize(22)
+    doc.text("YOUR COMPANY", 20, 20)
+    doc.setFontSize(10)
+    doc.text("123 Business Street, City, Country", 20, 28)
+    doc.text("Email: contact@yourcompany.com | Phone: +1 234 567 890", 20, 34)
+    
+    // Add invoice details
+    doc.setFontSize(16)
+    doc.text("INVOICE", pageWidth - 20, 20, { align: "right" })
+    doc.setFontSize(10)
+    doc.text(`Invoice No: ${invoice.invoiceNumber}`, pageWidth - 20, 28, { align: "right" })
+    doc.text(`Date: ${invoice.invoiceDate}`, pageWidth - 20, 34, { align: "right" })
+    doc.text(`Due Date: ${invoice.dueDate}`, pageWidth - 20, 40, { align: "right" })
+    
+    // Add customer info
+    doc.setFontSize(12)
+    doc.text("Bill To:", 20, 50)
+    doc.setFontSize(10)
+    const customerDisplayName = customers.find(c => c.id === invoice.customerName)?.name || invoice.customerName
+    doc.text(customerDisplayName, 20, 58)
+    
+    // Draw table header
+    let y = 70
+    doc.setFillColor(240, 240, 240)
+    doc.rect(20, y, pageWidth - 40, 10, "F")
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.text("Item", 22, y + 7)
+    doc.text("Quantity", 100, y + 7)
+    doc.text("Rate", 130, y + 7)
+    doc.text("Amount", 160, y + 7)
+    
+    // Draw items
+    y += 10
+    invoice.items.forEach((item, index) => {
+      if (y > 250) {
+        // Add new page if needed
+        doc.addPage()
+        y = 20
+      }
+      
+      doc.text(item.details || "Item", 22, y + 7)
+      doc.text(item.quantity, 100, y + 7)
+      doc.text(`₹${item.rate}`, 130, y + 7)
+      doc.text(`₹${item.amount}`, 160, y + 7)
+      
+      // Draw line
+      doc.setDrawColor(220, 220, 220)
+      doc.line(20, y + lineHeight + 3, pageWidth - 20, y + lineHeight + 3)
+      
+      y += lineHeight + 5
+    })
+    
+    // Add total
+    y += 10
+    doc.text("Subtotal:", pageWidth - 60, y)
+    doc.text(`₹${invoice.subtotal.toFixed(2)}`, pageWidth - 20, y, { align: "right" })
+    y += 8
+    doc.text("Total:", pageWidth - 60, y)
+    doc.setFontSize(12)
+    doc.text(`₹${invoice.total.toFixed(2)}`, pageWidth - 20, y, { align: "right" })
+    
+    // Add notes
+    if (invoice.customerNotes) {
+      y += 20
+      doc.setFontSize(10)
+      doc.text("Notes:", 20, y)
+      y += 8
+      doc.text(invoice.customerNotes, 20, y)
+    }
+    
+    // Add terms and conditions
+    if (invoice.termsAndConditions) {
+      y += 20
+      doc.setFontSize(10)
+      doc.text("Terms and Conditions:", 20, y)
+      y += 8
+      doc.text(invoice.termsAndConditions, 20, y)
+    }
+    
+    return doc
+  }
+
   // Handle form submission
   const handleSubmit = (isDraft = false) => {
     // Create the invoice object
@@ -98,13 +211,42 @@ const InvoiceForm = () => {
     
     console.log("Saving invoice:", invoice)
     
-    // Here you would typically send this to your backend
-    alert(`Invoice ${isDraft ? "saved as draft" : "saved and sent"}!`)
+    // Save the invoice (to backend in a real app)
+    setSavedInvoice(invoice)
+    
+    try {
+      // Generate PDF
+      const doc = generateInvoicePDF(invoice)
+      const pdfBlob = doc.output("blob")
+      const url = URL.createObjectURL(pdfBlob)
+      setPdfUrl(url)
+      
+      // Show download dialog
+      setShowDownloadDialog(true)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      alert("There was an error generating the PDF. Please try again.")
+    }
+  }
+
+  // Handle download
+  const handleDownload = () => {
+    if (pdfUrl && savedInvoice) {
+      const link = document.createElement("a")
+      link.href = pdfUrl
+      link.download = `Invoice-${savedInvoice.invoiceNumber}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Close dialog
+      setShowDownloadDialog(false)
+    }
   }
 
   // Handle cancel
   const handleCancel = () => {
-    console.log("Cancelled");
+    console.log("Cancelled")
   }
 
   return (
@@ -369,13 +511,27 @@ const InvoiceForm = () => {
         <Button onClick={() => handleSubmit(true)}>
           Save
         </Button>
-        {/* <div className="relative">
-          <Button className="bg-blue-500 hover:bg-blue-600" onClick={() => handleSubmit(false)}>
-            Save and Send
-          </Button>
-        </div> */}
         <Button variant="outline" onClick={handleCancel}>Cancel</Button>
       </CardFooter>
+
+      {/* Download Invoice Dialog */}
+      <AlertDialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invoice Saved Successfully</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your invoice has been saved. Would you like to download a PDF copy?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDownload} className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Download Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

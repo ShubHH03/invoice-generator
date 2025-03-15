@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Loader2, Plus } from "lucide-react"
+import { Search, Loader2, Plus, HelpCircle} from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table"
 import { Button } from "../ui/button"
@@ -19,10 +19,7 @@ import {
   PaginationPrevious,
 } from "../ui/pagination"
 import { Label } from "../ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "../ui/alert"
+
 
 const DataTable = ({ data = [], title }) => {
   const [currentPage, setCurrentPage] = useState(1)
@@ -37,7 +34,6 @@ const DataTable = ({ data = [], title }) => {
   const [selectedCategories, setSelectedCategories] = useState([])
   const [categorySearchTerm, setCategorySearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [customerFormOpen, setCustomerFormOpen] = useState(false)
   const rowsPerPage = 10
 
   // Get dynamic columns from first data item
@@ -64,19 +60,19 @@ const DataTable = ({ data = [], title }) => {
     }
 
     // Calculate totals for numeric columns
-    const totals = numericColumns.reduce((acc, column) => {
-      const total = filteredData.reduce((sum, row) => {
-        const value = Number.parseFloat(String(row[column]).replace(/,/g, ""))
-        return !isNaN(value) ? sum + value : sum
-      }, 0)
-      return {
-        ...acc,
-        [column]: total.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }),
-      }
-    }, {})
+    // const totals = numericColumns.reduce((acc, column) => {
+    //   const total = filteredData.reduce((sum, row) => {
+    //     const value = Number.parseFloat(String(row[column]).replace(/,/g, ""))
+    //     return !isNaN(value) ? sum + value : sum
+    //   }, 0)
+    //   return {
+    //     ...acc,
+    //     [column]: total.toLocaleString(undefined, {
+    //       minimumFractionDigits: 2,
+    //       maximumFractionDigits: 2,
+    //     }),
+    //   }
+    // }, {})
 
     const columnsToReplace = ["amount", "balance", "debit", "credit"]
     const filtered = filteredData.filter((row) =>
@@ -179,13 +175,13 @@ const DataTable = ({ data = [], title }) => {
   }
 
   // Calculate totals for numeric columns
-  const totals = numericColumns.reduce((acc, column) => {
-    const total = filteredData.reduce((sum, row) => {
-      const value = Number.parseFloat(row[column])
-      return !isNaN(value) ? sum + value : sum
-    }, 0)
-    return { ...acc, [column]: total.toFixed(2) }
-  }, {})
+  // const totals = numericColumns.reduce((acc, column) => {
+  //   const total = filteredData.reduce((sum, row) => {
+  //     const value = Number.parseFloat(row[column])
+  //     return !isNaN(value) ? sum + value : sum
+  //   }, 0)
+  //   return { ...acc, [column]: total.toFixed(2) }
+  // }, {})
 
   return (
     <Card>
@@ -203,11 +199,6 @@ const DataTable = ({ data = [], title }) => {
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
             />
-            {title !== "Recent Invoices" && (
-            <Button variant="default" onClick={() => setCustomerFormOpen(true)}>
-              <Plus className="h-5 w-5" />
-              New
-            </Button>)}
             <Button variant="default" onClick={() => clearFilters()}>
               Clear Filters
             </Button>
@@ -404,14 +395,7 @@ const DataTable = ({ data = [], title }) => {
         </div>
       )}
 
-      {/* Customer Form Dialog */}
-      <Dialog open={customerFormOpen} onOpenChange={setCustomerFormOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Create New Customer</DialogTitle>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+
     </Card>
   )
 }

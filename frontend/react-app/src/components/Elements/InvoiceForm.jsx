@@ -104,94 +104,238 @@ const InvoiceForm = () => {
   }
 
   // Generate PDF invoice
-  const generateInvoicePDF = (invoice) => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const lineHeight = 8
-    
-    // Add company header
-    doc.setFontSize(22)
-    doc.text("YOUR COMPANY", 20, 20)
-    doc.setFontSize(10)
-    doc.text("123 Business Street, City, Country", 20, 28)
-    doc.text("Email: contact@yourcompany.com | Phone: +1 234 567 890", 20, 34)
-    
-    // Add invoice details
-    doc.setFontSize(16)
-    doc.text("INVOICE", pageWidth - 20, 20, { align: "right" })
-    doc.setFontSize(10)
-    doc.text(`Invoice No: ${invoice.invoiceNumber}`, pageWidth - 20, 28, { align: "right" })
-    doc.text(`Date: ${invoice.invoiceDate}`, pageWidth - 20, 34, { align: "right" })
-    doc.text(`Due Date: ${invoice.dueDate}`, pageWidth - 20, 40, { align: "right" })
-    
-    // Add customer info
-    doc.setFontSize(12)
-    doc.text("Bill To:", 20, 50)
-    doc.setFontSize(10)
-    const customerDisplayName = customers.find(c => c.id === invoice.customerName)?.name || invoice.customerName
-    doc.text(customerDisplayName, 20, 58)
-    
-    // Draw table header
-    let y = 70
-    doc.setFillColor(240, 240, 240)
-    doc.rect(20, y, pageWidth - 40, 10, "F")
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(10)
-    doc.text("Item", 22, y + 7)
-    doc.text("Quantity", 100, y + 7)
-    doc.text("Rate", 130, y + 7)
-    doc.text("Amount", 160, y + 7)
-    
-    // Draw items
-    y += 10
-    invoice.items.forEach((item, index) => {
-      if (y > 250) {
-        // Add new page if needed
-        doc.addPage()
-        y = 20
-      }
-      
-      doc.text(item.details || "Item", 22, y + 7)
-      doc.text(item.quantity, 100, y + 7)
-      doc.text(`₹${item.rate}`, 130, y + 7)
-      doc.text(`₹${item.amount}`, 160, y + 7)
-      
-      // Draw line
-      doc.setDrawColor(220, 220, 220)
-      doc.line(20, y + lineHeight + 3, pageWidth - 20, y + lineHeight + 3)
-      
-      y += lineHeight + 5
-    })
-    
-    // Add total
-    y += 10
-    doc.text("Subtotal:", pageWidth - 60, y)
-    doc.text(`₹${invoice.subtotal.toFixed(2)}`, pageWidth - 20, y, { align: "right" })
-    y += 8
-    doc.text("Total:", pageWidth - 60, y)
-    doc.setFontSize(12)
-    doc.text(`₹${invoice.total.toFixed(2)}`, pageWidth - 20, y, { align: "right" })
-    
-    // Add notes
-    if (invoice.customerNotes) {
-      y += 20
-      doc.setFontSize(10)
-      doc.text("Notes:", 20, y)
-      y += 8
-      doc.text(invoice.customerNotes, 20, y)
-    }
-    
-    // Add terms and conditions
-    if (invoice.termsAndConditions) {
-      y += 20
-      doc.setFontSize(10)
-      doc.text("Terms and Conditions:", 20, y)
-      y += 8
-      doc.text(invoice.termsAndConditions, 20, y)
-    }
-    
-    return doc
+const generateInvoicePDF = (invoice) => {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 20
+  const lineHeight = 6
+  
+  // Border for the entire page
+  doc.setDrawColor(0)
+  doc.rect(margin, margin, pageWidth - 2 * margin, pageHeight - 2 * margin)
+  
+  // Company info in header (left side)
+  doc.setFontSize(10)
+  doc.text("hello", margin + 5, margin + 10)
+  doc.text("Maharashtra", margin + 5, margin + 15)
+  doc.text("India", margin + 5, margin + 20)
+  doc.text("mac.glenn6978@gmail.com", margin + 5, margin + 25)
+  
+  // Invoice title (right side)
+  doc.setFontSize(16)
+  doc.setFont(undefined, 'bold')
+  doc.text("TAX INVOICE", pageWidth - margin - 30, margin + 15)
+  doc.setFont(undefined, 'normal')
+  
+  // Invoice info section
+  const invoiceInfoY = margin + 30
+  const invoiceInfoHeight = 40
+  
+  // Draw box for invoice info
+  doc.rect(margin, invoiceInfoY, pageWidth / 2 - margin, invoiceInfoHeight)
+  doc.rect(pageWidth / 2, invoiceInfoY, pageWidth / 2 - margin, invoiceInfoHeight)
+  
+  // Left side invoice info content
+  doc.setFontSize(10)
+  let yPos = invoiceInfoY + 8
+  
+  doc.text("#", margin + 5, yPos)
+  doc.text(": INV-000002", margin + 25, yPos)
+  yPos += lineHeight
+  
+  doc.text("Invoice Date", margin + 5, yPos)
+  doc.text(`: ${invoice.invoiceDate}`, margin + 25, yPos)
+  yPos += lineHeight
+  
+  doc.text("Status", margin + 5, yPos)
+  doc.text(": Due On Receipt", margin + 25, yPos)
+  yPos += lineHeight
+  
+  doc.text("Due Date", margin + 5, yPos)
+  doc.text(`: ${invoice.dueDate}`, margin + 25, yPos)
+  yPos += lineHeight
+  
+  doc.text("P.O.#", margin + 5, yPos)
+  doc.text(": SO-17", margin + 25, yPos)
+  
+  // Address section
+  const addressY = invoiceInfoY + invoiceInfoHeight
+  const addressHeight = 40
+  
+  // Draw boxes for addresses
+  doc.rect(margin, addressY, pageWidth / 2 - margin, addressHeight)
+  doc.rect(pageWidth / 2, addressY, pageWidth / 2 - margin, addressHeight)
+  
+  // Bill To content
+  yPos = addressY + 8
+  doc.text("Bill To", margin + 5, yPos)
+  yPos += lineHeight
+  doc.text("Rob & Joe Traders", margin + 5, yPos)
+  yPos += lineHeight
+  doc.text("24, Richa Street", margin + 5, yPos)
+  yPos += lineHeight
+  doc.text("Chennai", margin + 5, yPos)
+  yPos += lineHeight
+  doc.text("631605 Tamil Nadu", margin + 5, yPos)
+  yPos += lineHeight
+  doc.text("India", margin + 5, yPos)
+  
+  // Ship To content
+  yPos = addressY + 8
+  doc.text("Ship To", pageWidth / 2 + 5, yPos)
+  yPos += lineHeight
+  doc.text("24, Richa Street", pageWidth / 2 + 5, yPos)
+  yPos += lineHeight
+  doc.text("Chennai", pageWidth / 2 + 5, yPos)
+  yPos += lineHeight
+  doc.text("631605 Tamil Nadu", pageWidth / 2 + 5, yPos)
+  yPos += lineHeight
+  doc.text("India", pageWidth / 2 + 5, yPos)
+  
+  // Subject section
+  const subjectY = addressY + addressHeight
+  const subjectHeight = 15
+  
+  // Draw box for subject
+  doc.rect(margin, subjectY, pageWidth - 2 * margin, subjectHeight)
+  
+  yPos = subjectY + 8
+  doc.text("Subject :", margin + 5, yPos)
+  doc.text("Description", margin + 40, yPos)
+  
+  // Items table
+  const tableHeaderY = subjectY + subjectHeight
+  const tableWidth = pageWidth - 2 * margin
+  
+  // Calculate column widths
+  const colWidths = {
+    num: 15,
+    desc: 130,
+    qty: 30,
+    rate: 30,
+    discount: 30,
+    taxPct: 30,
+    tax: 30,
+    amount: 30
   }
+  
+  // Draw table header cells
+  doc.setFillColor(240, 240, 240)
+  doc.rect(margin, tableHeaderY, colWidths.num, 10, 'F')
+  doc.rect(margin + colWidths.num, tableHeaderY, colWidths.desc, 10, 'F')
+  doc.rect(margin + colWidths.num + colWidths.desc, tableHeaderY, colWidths.qty, 10, 'F')
+  doc.rect(margin + colWidths.num + colWidths.desc + colWidths.qty, tableHeaderY, colWidths.rate, 10, 'F')
+  doc.rect(margin + colWidths.num + colWidths.desc + colWidths.qty + colWidths.rate, tableHeaderY, colWidths.discount, 10, 'F')
+  
+  // Header text
+  doc.setFont(undefined, 'bold')
+  doc.text("#", margin + 5, tableHeaderY + 7)
+  doc.text("Item & Description", margin + colWidths.num + 5, tableHeaderY + 7)
+  doc.text("Qty", margin + colWidths.num + colWidths.desc + 10, tableHeaderY + 7)
+  doc.text("Rate", margin + colWidths.num + colWidths.desc + colWidths.qty + 10, tableHeaderY + 7)
+  doc.text("Discount", margin + colWidths.num + colWidths.desc + colWidths.qty + colWidths.rate + 5, tableHeaderY + 7)
+  doc.setFont(undefined, 'normal')
+  
+  // Draw item rows
+  let tableY = tableHeaderY + 10
+  const rowHeight = 10
+  
+  // Display at least one item or the items from the invoice
+  const itemsToDisplay = invoice.items.length > 0 ? invoice.items : [{ id: 1, details: "Item 1", quantity: "1.00", rate: "0.00", amount: "0.00" }]
+  
+  itemsToDisplay.forEach((item, index) => {
+    // Draw row cells
+    doc.rect(margin, tableY, colWidths.num, rowHeight)
+    doc.rect(margin + colWidths.num, tableY, colWidths.desc, rowHeight)
+    doc.rect(margin + colWidths.num + colWidths.desc, tableY, colWidths.qty, rowHeight)
+    doc.rect(margin + colWidths.num + colWidths.desc + colWidths.qty, tableY, colWidths.rate, rowHeight)
+    doc.rect(margin + colWidths.num + colWidths.desc + colWidths.qty + colWidths.rate, tableY, colWidths.discount, rowHeight)
+    
+    // Row text
+    doc.text(`${index + 1}`, margin + 5, tableY + 7)
+    doc.text(item.details || `Item ${index + 1}`, margin + colWidths.num + 5, tableY + 7)
+    doc.text(item.quantity, margin + colWidths.num + colWidths.desc + 10, tableY + 7)
+    doc.text(item.rate, margin + colWidths.num + colWidths.desc + colWidths.qty + 10, tableY + 7)
+    doc.text("0.00", margin + colWidths.num + colWidths.desc + colWidths.qty + colWidths.rate + 10, tableY + 7)
+    
+    tableY += rowHeight
+  })
+  
+  // Total section
+  tableY += 10
+  
+  // Left side - Total in words
+  doc.text("Total In Words:", margin, tableY + 5)
+  doc.setFontSize(8)
+  doc.setFont(undefined, 'italic')
+  doc.text("Indian Rupee Six Hundred Sixty-Two and Seventy-Five Paise Only", margin, tableY + 12)
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(10)
+  
+  // Right side - Calculations
+  const rightColX = pageWidth - margin - 70
+  const valueColX = pageWidth - margin - 15
+  
+  doc.text("Sub Total", rightColX, tableY)
+  doc.text("0.00", valueColX, tableY, { align: "right" })
+  tableY += 7
+  
+  doc.text("Discount", rightColX, tableY)
+  doc.text("0.00", valueColX, tableY, { align: "right" })
+  tableY += 7
+  
+  doc.text("Sample Tax1 (4.70%)", rightColX, tableY)
+  doc.text("11.75", valueColX, tableY, { align: "right" })
+  tableY += 7
+  
+  doc.text("Sample Tax2 (7.00%)", rightColX, tableY)
+  doc.text("21.00", valueColX, tableY, { align: "right" })
+  tableY += 7
+  
+  doc.setFont(undefined, 'bold')
+  doc.text("Total", rightColX, tableY)
+  doc.text("0.00", valueColX, tableY, { align: "right" })
+  tableY += 7
+  doc.setFont(undefined, 'normal')
+  
+  doc.text("Payment Made", rightColX, tableY)
+  doc.text("(-) 100.00", valueColX, tableY, { align: "right" })
+  tableY += 7
+  
+  doc.setFont(undefined, 'bold')
+  doc.text("Balance Due", rightColX, tableY)
+  doc.text("-100.00", valueColX, tableY, { align: "right" })
+  doc.setFont(undefined, 'normal')
+  
+  // Notes section
+  tableY += 15
+  doc.text("Notes:", margin, tableY)
+  tableY += 7
+  doc.text("Thanks for your business.", margin, tableY)
+  
+  // Payment options
+  tableY += 10
+  doc.text("Payment Options:", margin, tableY)
+  
+  // PayPal button 
+  doc.setFillColor(0, 102, 164)
+  doc.rect(margin + 60, tableY - 4, 40, 12, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.text("PayPal", margin + 75, tableY + 3)
+  doc.setTextColor(0, 0, 0)
+  
+  // Terms and conditions
+  tableY += 15
+  doc.text("Terms & Conditions:", margin, tableY)
+  tableY += 7
+  doc.text("Your company's Terms and Conditions will be displayed here.", margin, tableY)
+  
+  // Authorized signature
+  doc.text("Authorized Signature", pageWidth - margin - 40, pageHeight - margin - 10)
+  
+  return doc
+}
 
   // Handle form submission
   const handleSubmit = (isDraft = false) => {

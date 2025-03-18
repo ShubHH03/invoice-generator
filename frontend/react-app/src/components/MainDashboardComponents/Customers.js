@@ -19,37 +19,12 @@ import {
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-const customerData = [
-  {
-    name: "John Doe",
-    companyName: "ABC Corp",
-    email: "john@abccorp.com",
-    phone: "+1-234-567-8901"
-  },
-  {
-    name: "Jane Smith",
-    companyName: "XYZ Industries",
-    email: "jane@xyz.com",
-    phone: "+1-234-567-8902"
-  },
-  {
-    name: "Mike Johnson",
-    companyName: "Tech Solutions",
-    email: "mike@techsol.com",
-    phone: "+1-234-567-8903"
-  },
-  {
-    name: "Sarah Wilson",
-    companyName: "Global Services",
-    email: "sarah@global.com",
-    phone: "+1-234-567-8904"
-  },
-  {
-    name: "David Brown",
-    companyName: "Innovation Ltd",
-    email: "david@innovation.com",
-    phone: "+1-234-567-8905"
-  }
+const initialCustomerData = [
+  { name: "John Doe", companyName: "ABC Corp", email: "john@abccorp.com", phone: "+1-234-567-8901" },
+  { name: "Jane Smith", companyName: "XYZ Industries", email: "jane@xyz.com", phone: "+1-234-567-8902" },
+  { name: "Mike Johnson", companyName: "Tech Solutions", email: "mike@techsol.com", phone: "+1-234-567-8903" },
+  { name: "Sarah Wilson", companyName: "Global Services", email: "sarah@global.com", phone: "+1-234-567-8904" },
+  { name: "David Brown", companyName: "Innovation Ltd", email: "david@innovation.com", phone: "+1-234-567-8905" }
 ];
 
 const Customers = () => {
@@ -289,7 +264,7 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      {/* Category Filter Modal */}
+      {/* Filter Modal */}
       {filterModalOpen && (
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
@@ -327,12 +302,7 @@ const Customers = () => {
         </Dialog>
       )}
 
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center">
-          <Loader2 className="animate-spin h-8 w-8 text-[#3498db]" />
-        </div>
-      )}
+
 
       {/* Customer Form Dialog */}
       <Dialog open={customerFormOpen} onOpenChange={setCustomerFormOpen}>

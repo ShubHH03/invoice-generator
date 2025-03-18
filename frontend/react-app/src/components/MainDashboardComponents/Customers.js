@@ -19,7 +19,7 @@ import {
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-const initialCustomerData = [
+const customerData = [
   { name: "John Doe", companyName: "ABC Corp", email: "john@abccorp.com", phone: "+1-234-567-8901" },
   { name: "Jane Smith", companyName: "XYZ Industries", email: "jane@xyz.com", phone: "+1-234-567-8902" },
   { name: "Mike Johnson", companyName: "Tech Solutions", email: "mike@techsol.com", phone: "+1-234-567-8903" },

@@ -1,5 +1,5 @@
 import React, { useState,useMemo, useEffect } from "react";
-import {  LayoutDashboard, FilePlus2, ShoppingBag, UserPlus } from "lucide-react";
+import {  LayoutDashboard, FilePlus2, ShoppingBag, UserPlus, LayoutList } from "lucide-react";
 import ReportGenerator from "../components/MainDashboardComponents/Invoice";
 import { cn } from "../lib/utils";
 import { ScrollArea } from "../components/ui/scroll-area";
@@ -12,6 +12,7 @@ import Customers from "../components/MainDashboardComponents/Customers";
 import { BreadcrumbDynamic } from "../components/BreadCrumb";
 import { useBreadcrumb } from '../contexts/BreadcrumbContext';
 import { useParams } from "react-router-dom";
+import Company from "../components/MainDashboardComponents/Company";
 
 const Dashboard = () => {
   
@@ -36,6 +37,16 @@ const Dashboard = () => {
       url: "#",
       icon: LayoutDashboard,
       isActive: true,
+    },  
+    {
+      title: "Invoice",
+      url: "#",
+      icon: FilePlus2 ,
+    },  
+    {
+      title: "Company",
+      url: "#",
+      icon: LayoutList,
     },
     {
       title: "Customers",
@@ -46,11 +57,6 @@ const Dashboard = () => {
       title: "Items",
       url: "#",
       icon: ShoppingBag,
-    },
-    {
-      title: "Invoice",
-      url: "#",
-      icon: FilePlus2 ,
     },
     // {
     //   title: "Billing",
@@ -106,7 +112,7 @@ const Dashboard = () => {
               {activeTab === "Customers" && <Customers />}
               {activeTab === "Items" && <Eligibility />}
               {activeTab === "Invoice" && <ReportGenerator />}
-              {/* {activeTab === "Billing" && <Billing />} */}
+                {activeTab === "Company" && <Company />}
             </main>
           </div>
         </ScrollArea>

@@ -347,7 +347,7 @@ const Customers = () => {
               </div>
               <div className="flex space-x-2">
                 <Select>
-                  <SelectTrigger className="">
+                  <SelectTrigger className="max-w-32">
                     <SelectValue placeholder="Salutation" />
                   </SelectTrigger>
                   <SelectContent>

@@ -267,30 +267,60 @@ const InvoiceForm = () => {
     // Items table section
     const tableY = buyerY + buyerHeight;
     const tableHeaderHeight = 10;
+
+    // Adjusted column widths to fit the page
+    const colWidths = {
+        slNo: 5,
+        description: 100,
+        hsn: 20,
+        quantity: 15,
+        rate: 15,
+        per: 10,
+        amount: 25
+    };
+    
+    let currentX = margin;
     
     // Table header
     doc.setFillColor(240, 240, 240);
-    doc.rect(margin, tableY, 15, tableHeaderHeight, "S");
-    doc.rect(margin + 15, tableY, 145, tableHeaderHeight, "S");
-    doc.rect(margin + 160, tableY, 30, tableHeaderHeight, "S");
-    doc.rect(margin + 190, tableY, 30, tableHeaderHeight, "S");
-    doc.rect(margin + 220, tableY, 15, tableHeaderHeight, "S");
-    doc.rect(margin + 235, tableY, 30, tableHeaderHeight, "S");
+    doc.rect(currentX, tableY, colWidths.slNo, tableHeaderHeight, "S");
+    currentX += colWidths.slNo;
+    doc.rect(currentX, tableY, colWidths.description, tableHeaderHeight, "S");
+    currentX += colWidths.description;
+    doc.rect(currentX, tableY, colWidths.hsn, tableHeaderHeight, "S");
+    currentX += colWidths.hsn;
+    doc.rect(currentX, tableY, colWidths.quantity, tableHeaderHeight, "S");
+    currentX += colWidths.quantity;
+    doc.rect(currentX, tableY, colWidths.rate, tableHeaderHeight, "S");
+    currentX += colWidths.rate;
+    doc.rect(currentX, tableY, colWidths.per, tableHeaderHeight, "S");
+    currentX += colWidths.per;
+    doc.rect(currentX, tableY, colWidths.amount, tableHeaderHeight, "S");
     
     doc.setFontSize(8);
     doc.setFont(undefined, "bold");
-    doc.text("Sl", margin + 5, tableY + 6);
-    doc.text("Description of Goods", margin + 40, tableY + 6);
-    doc.text("HSN/SAC", margin + 175, tableY + 6);
-    doc.text("Quantity", margin + 205, tableY + 6);
-    doc.text("Rate", margin + 225, tableY + 6);
-    doc.text("per", margin + 240, tableY + 6);
-    doc.text("Amount", margin + 255, tableY + 6);
+    
+    // Redraw header text with new positioning
+    currentX = margin;
+    doc.text("Sl", currentX + 1, tableY + 6);
+    currentX += colWidths.slNo;
+    doc.text("Particulars", currentX + 20, tableY + 6);
+    currentX += colWidths.description;
+    doc.text("HSN/SAC", currentX + 5, tableY + 6);
+    currentX += colWidths.hsn;
+    doc.text("Qty", currentX + 5, tableY + 6);
+    currentX += colWidths.quantity;
+    doc.text("Rate", currentX + 5, tableY + 6);
+    currentX += colWidths.rate;
+    doc.text("Per", currentX + 3, tableY + 6);
+    currentX += colWidths.per;
+    doc.text("Amount", currentX + 5, tableY + 6);
+    
     doc.setFont(undefined, "normal");
     
     // Table rows for items
     let itemY = tableY + tableHeaderHeight;
-    const itemHeight = 30;
+    const itemHeight = 50; // Reduced height
     
     // Display items or a sample item if none provided
     const itemsToDisplay = invoice.items && invoice.items.length > 0 
@@ -301,31 +331,47 @@ const InvoiceForm = () => {
         ];
     
     itemsToDisplay.forEach((item, index) => {
-      // Draw item rows
-      doc.rect(margin, itemY, 15, itemHeight, "S");
-      doc.rect(margin + 15, itemY, 145, itemHeight, "S");
-      doc.rect(margin + 160, itemY, 30, itemHeight, "S");
-      doc.rect(margin + 190, itemY, 30, itemHeight, "S");
-      doc.rect(margin + 220, itemY, 15, itemHeight, "S");
-      doc.rect(margin + 235, itemY, 30, itemHeight, "S");
+      currentX = margin;
+      
+      // Draw item rows with adjusted widths
+      doc.rect(currentX, itemY, colWidths.slNo, itemHeight, "S");
+      currentX += colWidths.slNo;
+      doc.rect(currentX, itemY, colWidths.description, itemHeight, "S");
+      currentX += colWidths.description;
+      doc.rect(currentX, itemY, colWidths.hsn, itemHeight, "S");
+      currentX += colWidths.hsn;
+      doc.rect(currentX, itemY, colWidths.quantity, itemHeight, "S");
+      currentX += colWidths.quantity;
+      doc.rect(currentX, itemY, colWidths.rate, itemHeight, "S");
+      currentX += colWidths.rate;
+      doc.rect(currentX, itemY, colWidths.per, itemHeight, "S");
+      currentX += colWidths.per;
+      doc.rect(currentX, itemY, colWidths.amount, itemHeight, "S");
+      
+      // Reset currentX for text positioning
+      currentX = margin;
       
       // Item details
-      doc.text(`${index + 1}`, margin + 5, itemY + 10);
-      doc.text(item.details || `Item ${index + 1}`, margin + 20, itemY + 10);
+      doc.text(`${index + 1}`, currentX + 1, itemY + 10);
+      currentX += colWidths.slNo;
+      doc.text(item.details || `Item ${index + 1}`, currentX + 5, itemY + 10);
       
       if (index === 0) {
-        doc.text("Batch", margin + 25, itemY + 15);
-        doc.text("Batch1", margin + 50, itemY + 15);
+        doc.text("Batch: Batch1", currentX + 5, itemY + 15);
       } else if (index === 1) {
-        doc.text("Batch", margin + 25, itemY + 15);
-        doc.text("Batch1/01", margin + 50, itemY + 15);
+        doc.text("Batch: Batch1/01", currentX + 5, itemY + 15);
       }
       
-      doc.text(item.hsn || "8517", margin + 175, itemY + 10);
-      doc.text(item.quantity || "0 Nos", margin + 195, itemY + 10);
-      doc.text(item.rate || "0.00", margin + 225, itemY + 10);
-      doc.text(item.per || "Nos", margin + 240, itemY + 10);
-      doc.text(item.amount || "0.00", margin + 250, itemY + 10);
+      currentX += colWidths.description;
+      doc.text(item.hsn || "8517", currentX + 5, itemY + 10);
+      currentX += colWidths.hsn;
+      doc.text(item.quantity || "0 Nos", currentX + 5, itemY + 10);
+      currentX += colWidths.quantity;
+      doc.text(item.rate || "0.00", currentX + 5, itemY + 10);
+      currentX += colWidths.rate;
+      doc.text(item.per || "Nos", currentX + 3, itemY + 10);
+      currentX += colWidths.per;
+      doc.text(item.amount || "0.00", currentX + 5, itemY + 10);
       
       itemY += itemHeight;
     });

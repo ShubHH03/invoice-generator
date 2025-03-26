@@ -381,7 +381,7 @@ const InvoiceForm = () => {
 
     // Table rows for items
     let itemY = tableY + tableHeaderHeight;
-    const itemHeight = 50; // Reduced height
+    const itemHeight = 20; // Reduced height
 
     // Display items or a sample item if none provided
     const itemsToDisplay =
@@ -434,11 +434,11 @@ const InvoiceForm = () => {
       currentX += colWidths.slNo;
       doc.text(item.details || `Item ${index + 1}`, currentX + 5, itemY + 10);
 
-      if (index === 0) {
-        doc.text("Batch: Batch1", currentX + 5, itemY + 15);
-      } else if (index === 1) {
-        doc.text("Batch: Batch1/01", currentX + 5, itemY + 15);
-      }
+      // if (index === 0) {
+      //   doc.text("Batch: Batch1", currentX + 5, itemY + 15);
+      // } else if (index === 1) {
+      //   doc.text("Batch: Batch1/01", currentX + 5, itemY + 15);
+      // }
 
       currentX += colWidths.description;
       doc.text(item.hsn || "8517", currentX + 5, itemY + 10);
@@ -455,7 +455,7 @@ const InvoiceForm = () => {
     });
 
     // Totals section after items
-    doc.rect(margin, itemY, pageWidth - 2 * margin, 30, "S");
+    // doc.rect(margin, itemY, pageWidth - 2 * margin, 30, "S");
 
     // Tax calculation section
     if (itemsToDisplay.length === 2) {
@@ -477,101 +477,101 @@ const InvoiceForm = () => {
     doc.setFont(undefined, "normal");
 
     // Amount in words
-    doc.line(margin, itemY + 30, pageWidth - margin, itemY + 30);
-    doc.rect(margin, itemY + 30, pageWidth - 2 * margin, 10, "S");
-    doc.setFontSize(8);
-    doc.text("Amount Chargeable (in words)", margin + 5, itemY + 36);
-    doc.setFont(undefined, "bold");
-    doc.text(
-      "INR Ninety Six Lakh Thirty Two Thousand Only",
-      margin + 80,
-      itemY + 36
-    );
-    doc.text("E & O.E", pageWidth - margin - 10, itemY + 36, {
-      align: "right",
-    });
-    doc.setFont(undefined, "normal");
+    // doc.line(margin, itemY + 30, pageWidth - margin, itemY + 30);
+    // doc.rect(margin, itemY + 30, pageWidth - 2 * margin, 10, "S");
+    // doc.setFontSize(8);
+    // doc.text("Amount Chargeable (in words)", margin + 5, itemY + 36);
+    // doc.setFont(undefined, "bold");
+    // doc.text(
+    //   "INR Ninety Six Lakh Thirty Two Thousand Only",
+    //   margin + 80,
+    //   itemY + 36
+    // );
+    // doc.text("E & O.E", pageWidth - margin - 10, itemY + 36, {
+    //   align: "right",
+    // });
+    // doc.setFont(undefined, "normal");
 
     // Tax details table
     const taxTableY = itemY + 40;
-    const taxTableHeight = 30;
+    // const taxTableHeight = 30;
 
     // Tax table header
-    doc.rect(margin, taxTableY, 60, 10, "S");
-    doc.rect(margin + 60, taxTableY, 60, 10, "S");
-    doc.rect(margin + 120, taxTableY, 60, 10, "S");
-    doc.rect(margin + 180, taxTableY, 45, 10, "S");
+    // doc.rect(margin, taxTableY, 60, 10, "S");
+    // doc.rect(margin + 60, taxTableY, 60, 10, "S");
+    // doc.rect(margin + 120, taxTableY, 60, 10, "S");
+    // doc.rect(margin + 180, taxTableY, 45, 10, "S");
 
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-    doc.text("HSN/SAC", margin + 20, taxTableY + 6);
-    doc.text("Taxable", margin + 75, taxTableY + 6);
-    doc.text("Central Tax", margin + 150, taxTableY + 6);
-    doc.text("State Tax", margin + 200, taxTableY + 6);
-    doc.text("Total", margin + 215, taxTableY + 6);
-    doc.setFont(undefined, "normal");
+    // doc.setFontSize(8);
+    // doc.setFont(undefined, "bold");
+    // doc.text("HSN/SAC", margin + 20, taxTableY + 6);
+    // doc.text("Taxable", margin + 75, taxTableY + 6);
+    // doc.text("Central Tax", margin + 150, taxTableY + 6);
+    // doc.text("State Tax", margin + 200, taxTableY + 6);
+    // doc.text("Total", margin + 215, taxTableY + 6);
+    // doc.setFont(undefined, "normal");
 
     // Subtable for Central Tax
-    doc.rect(margin + 120, taxTableY + 10, 30, 10, "S");
-    doc.rect(margin + 150, taxTableY + 10, 30, 10, "S");
-    doc.text("Rate", margin + 130, taxTableY + 15);
-    doc.text("Amount", margin + 160, taxTableY + 15);
+    // doc.rect(margin + 120, taxTableY + 10, 30, 10, "S");
+    // doc.rect(margin + 150, taxTableY + 10, 30, 10, "S");
+    // doc.text("Rate", margin + 130, taxTableY + 15);
+    // doc.text("Amount", margin + 160, taxTableY + 15);
 
     // Subtable for State Tax
-    doc.rect(margin + 180, taxTableY + 10, 22.5, 10, "S");
-    doc.rect(margin + 202.5, taxTableY + 10, 22.5, 10, "S");
-    doc.text("Rate", margin + 190, taxTableY + 15);
-    doc.text("Amount", margin + 210, taxTableY + 15);
+    // doc.rect(margin + 180, taxTableY + 10, 22.5, 10, "S");
+    // doc.rect(margin + 202.5, taxTableY + 10, 22.5, 10, "S");
+    // doc.text("Rate", margin + 190, taxTableY + 15);
+    // doc.text("Amount", margin + 210, taxTableY + 15);
 
     // Tax values
-    doc.rect(margin, taxTableY + 20, 60, 10, "S");
-    doc.rect(margin + 60, taxTableY + 20, 60, 10, "S");
-    doc.rect(margin + 120, taxTableY + 20, 30, 10, "S");
-    doc.rect(margin + 150, taxTableY + 20, 30, 10, "S");
-    doc.rect(margin + 180, taxTableY + 20, 22.5, 10, "S");
-    doc.rect(margin + 202.5, taxTableY + 20, 22.5, 10, "S");
-    doc.rect(margin + 225, taxTableY + 20, 40, 10, "S");
+    // doc.rect(margin, taxTableY + 20, 60, 10, "S");
+    // doc.rect(margin + 60, taxTableY + 20, 60, 10, "S");
+    // doc.rect(margin + 120, taxTableY + 20, 30, 10, "S");
+    // doc.rect(margin + 150, taxTableY + 20, 30, 10, "S");
+    // doc.rect(margin + 180, taxTableY + 20, 22.5, 10, "S");
+    // doc.rect(margin + 202.5, taxTableY + 20, 22.5, 10, "S");
+    // doc.rect(margin + 225, taxTableY + 20, 40, 10, "S");
 
-    doc.text("8517", margin + 20, taxTableY + 25);
-    doc.text("86,00,000.00", margin + 75, taxTableY + 25);
-    doc.text("6%", margin + 130, taxTableY + 25);
-    doc.text("5,16,000.00", margin + 160, taxTableY + 25);
-    doc.text("6%", margin + 190, taxTableY + 25);
-    doc.text("5,16,000.00", margin + 210, taxTableY + 25);
-    doc.text("10,32,000.00", margin + 240, taxTableY + 25);
+    // doc.text("8517", margin + 20, taxTableY + 25);
+    // doc.text("86,00,000.00", margin + 75, taxTableY + 25);
+    // doc.text("6%", margin + 130, taxTableY + 25);
+    // doc.text("5,16,000.00", margin + 160, taxTableY + 25);
+    // doc.text("6%", margin + 190, taxTableY + 25);
+    // doc.text("5,16,000.00", margin + 210, taxTableY + 25);
+    // doc.text("10,32,000.00", margin + 240, taxTableY + 25);
 
     // Tax total
-    doc.rect(margin, taxTableY + 30, 60, 10, "S");
-    doc.rect(margin + 60, taxTableY + 30, 60, 10, "S");
-    doc.rect(margin + 120, taxTableY + 30, 30, 10, "S");
-    doc.rect(margin + 150, taxTableY + 30, 30, 10, "S");
-    doc.rect(margin + 180, taxTableY + 30, 22.5, 10, "S");
-    doc.rect(margin + 202.5, taxTableY + 30, 22.5, 10, "S");
-    doc.rect(margin + 225, taxTableY + 30, 40, 10, "S");
+    // doc.rect(margin, taxTableY + 30, 60, 10, "S");
+    // doc.rect(margin + 60, taxTableY + 30, 60, 10, "S");
+    // doc.rect(margin + 120, taxTableY + 30, 30, 10, "S");
+    // doc.rect(margin + 150, taxTableY + 30, 30, 10, "S");
+    // doc.rect(margin + 180, taxTableY + 30, 22.5, 10, "S");
+    // doc.rect(margin + 202.5, taxTableY + 30, 22.5, 10, "S");
+    // doc.rect(margin + 225, taxTableY + 30, 40, 10, "S");
 
-    doc.setFont(undefined, "bold");
-    doc.text("Total", margin + 20, taxTableY + 37);
-    doc.text("86,00,000.00", margin + 75, taxTableY + 37);
-    doc.text("5,16,000.00", margin + 160, taxTableY + 37);
-    doc.text("5,16,000.00", margin + 210, taxTableY + 37);
-    doc.text("10,32,000.00", margin + 240, taxTableY + 37);
-    doc.setFont(undefined, "normal");
+    // doc.setFont(undefined, "bold");
+    // doc.text("Total", margin + 20, taxTableY + 37);
+    // doc.text("86,00,000.00", margin + 75, taxTableY + 37);
+    // doc.text("5,16,000.00", margin + 160, taxTableY + 37);
+    // doc.text("5,16,000.00", margin + 210, taxTableY + 37);
+    // doc.text("10,32,000.00", margin + 240, taxTableY + 37);
+    // doc.setFont(undefined, "normal");
 
     // Tax amount in words
-    doc.rect(margin, taxTableY + 40, pageWidth - 2 * margin, 10, "S");
-    doc.setFontSize(8);
-    doc.text("Tax Amount (in words)", margin + 5, taxTableY + 47);
-    doc.setFont(undefined, "bold");
-    doc.text(
-      "INR Ten Lakh Thirty Two Thousand Only",
-      margin + 80,
-      taxTableY + 47
-    );
-    doc.setFont(undefined, "normal");
+    // doc.rect(margin, taxTableY + 40, pageWidth - 2 * margin, 10, "S");
+    // doc.setFontSize(8);
+    // doc.text("Tax Amount (in words)", margin + 5, taxTableY + 47);
+    // doc.setFont(undefined, "bold");
+    // doc.text(
+    //   "INR Ten Lakh Thirty Two Thousand Only",
+    //   margin + 80,
+    //   taxTableY + 47
+    // );
+    // doc.setFont(undefined, "normal");
 
     // Declaration section
-    const declarationY = taxTableY + 55;
-    const declarationHeight = 30;
+    const declarationY = taxTableY + 75;
+    const declarationHeight = 20;
 
     doc.rect(
       margin,
@@ -590,29 +590,28 @@ const InvoiceForm = () => {
 
     doc.setFontSize(8);
     doc.setFont(undefined, "bold");
-    doc.text("Declaration", margin + 5, declarationY + 7);
+    doc.text("Declaration", margin + 5, declarationY + 5);
     doc.setFont(undefined, "normal");
     doc.text(
       "We declare that this invoice shows the actual price of the",
       margin + 5,
-      declarationY + 15
+      declarationY + 10
     );
     doc.text(
-      "goods described and that all particulars are true and",
+      "goods described and that all particulars are true and corrct",
       margin + 5,
-      declarationY + 20
-    );
-    doc.text("correct.", margin + 5, declarationY + 25);
-
-    doc.text(
-      "for Ace Mobile Manufacturer Pvt Ltd",
-      pageWidth - margin - 40,
       declarationY + 15
     );
+
+    // doc.text(
+    //   "for Ace Mobile Manufacturer Pvt Ltd",
+    //   pageWidth - margin - 40,
+    //   declarationY + 15
+    // );
     doc.text(
       "Authorized Signatory",
       pageWidth - margin - 35,
-      declarationY + 25
+      declarationY + 15
     );
 
     // Computer generated invoice text at bottom

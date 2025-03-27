@@ -452,32 +452,51 @@ const InvoiceForm = () => {
       currentX += colWidths.per;
       doc.text(item.amount || "0.00", currentX + 5, itemY + 10);
 
+      // Output CGST and SGST rows
+      const taxY = itemY + 35;
+      currentX = margin;
+
+      doc.setFont(undefined, "normal");
+      doc.text("Output CGST", currentX + 8, taxY);
+      currentX +=
+        colWidths.slNo +
+        colWidths.description +
+        colWidths.hsn +
+        colWidths.quantity +
+        colWidths.rate +
+        colWidths.per;
+      doc.text("5,16,000.00", currentX + 5, taxY);
+
+      const sgstY = taxY + 5;
+      currentX = margin;
+      doc.text("Output SGST", currentX + 8, sgstY);
+      currentX +=
+        colWidths.slNo +
+        colWidths.description +
+        colWidths.hsn +
+        colWidths.quantity +
+        colWidths.rate +
+        colWidths.per;
+      doc.text("5,16,000.00", currentX + 5, sgstY);
+
+      const totalY = itemY + 45;
+      currentX = margin;
+
+      // Total row
+      doc.setFont(undefined, "bold");
+      doc.text("Total", currentX + 8, totalY);
+
+      // Total Quantity
+      currentX += colWidths.slNo + colWidths.description + colWidths.hsn;
+      doc.text("1,300", currentX + 5, totalY);
+
+      // Total Amount
+      currentX += colWidths.quantity + colWidths.rate + colWidths.per;
+      doc.text("96,32,000.00", currentX + 5, totalY);
+
       itemY += itemHeight;
     });
 
-    // Totals section after items
-    // doc.rect(margin, itemY, pageWidth - 2 * margin, 30, "S");
-
-    // // Tax calculation section
-    // if (itemsToDisplay.length === 2) {
-    //   doc.text("86,00,000.00", margin + 250, itemY + 5);
-
-    //   // Output GST/SGST
-    //   doc.text("Output CGST", margin + 230, itemY + 15);
-    //   doc.text("Output SGST", margin + 230, itemY + 20);
-
-    //   doc.text("5,16,000.00", margin + 250, itemY + 15);
-    //   doc.text("5,16,000.00", margin + 250, itemY + 20);
-    // }
-
-    // // Total line
-    // doc.setFont(undefined, "bold");
-    // doc.text("Total", margin + 220, itemY + 25);
-    // doc.text("1,300 Nos", margin + 200, itemY + 25);
-    // doc.text("₹ 96,32,000.00", margin + 250, itemY + 25);
-    // doc.setFont(undefined, "normal");
-
-    // doc.rect(margin, itemY + 2, pageWidth - 2 * margin, 10, "S");
     doc.setFontSize(8);
     doc.text("Amount Chargeable (in words)", margin + 5, itemY + 7);
     doc.setFont(undefined, "bold");

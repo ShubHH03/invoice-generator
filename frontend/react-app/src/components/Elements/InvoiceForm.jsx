@@ -41,7 +41,7 @@ import {
 import { jsPDF } from "jspdf";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 
-const InvoiceForm = () => {
+const InvoiceForm = ({ onAddInvoice }) => {
   // State for form fields
   const [showTotalSummary, setShowTotalSummary] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -659,6 +659,17 @@ const InvoiceForm = () => {
     };
 
     console.log("Saving invoice:", invoice);
+
+    // Call the onAddInvoice callback to add the new invoice
+    if (onAddInvoice) {
+      onAddInvoice({
+        invoiceNo: invoice.invoiceNumber,
+        date: invoice.invoiceDate,
+        customerName: invoice.customerName,
+        dueDate: invoice.dueDate,
+        amount: total,
+      });
+    }
 
     // Save the invoice (to backend in a real app)
     setSavedInvoice(invoice);

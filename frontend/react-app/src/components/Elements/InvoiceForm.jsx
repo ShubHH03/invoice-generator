@@ -456,6 +456,9 @@ const InvoiceForm = ({ onAddInvoice }) => {
       const taxY = itemY + 35;
       currentX = margin;
 
+      const cgstAmount = (subtotal * 0.09).toFixed(2);
+      const sgstAmount = (subtotal * 0.09).toFixed(2);
+
       doc.setFont(undefined, "normal");
       doc.text("Output CGST", currentX + 8, taxY);
       currentX +=
@@ -465,7 +468,7 @@ const InvoiceForm = ({ onAddInvoice }) => {
         colWidths.quantity +
         colWidths.rate +
         colWidths.per;
-      doc.text("5,16,000.00", currentX + 5, taxY);
+      doc.text(cgstAmount, currentX + 5, taxY);
 
       const sgstY = taxY + 5;
       currentX = margin;
@@ -477,7 +480,7 @@ const InvoiceForm = ({ onAddInvoice }) => {
         colWidths.quantity +
         colWidths.rate +
         colWidths.per;
-      doc.text("5,16,000.00", currentX + 5, sgstY);
+      doc.text(sgstAmount, currentX + 5, sgstY);
 
       const totalY = itemY + 45;
       currentX = margin;
@@ -492,7 +495,8 @@ const InvoiceForm = ({ onAddInvoice }) => {
 
       // Total Amount
       currentX += colWidths.quantity + colWidths.rate + colWidths.per;
-      doc.text("96,32,000.00", currentX + 5, totalY);
+      const totalAmount = (subtotal + subtotal * 0.18).toFixed(2); // Subtotal + CGST + SGST
+      doc.text(totalAmount, currentX + 5, totalY);
 
       itemY += itemHeight;
     });
@@ -557,13 +561,21 @@ const InvoiceForm = ({ onAddInvoice }) => {
     doc.rect(margin + colWidth * 4, dataY, colWidth, 10, "S");
 
     // Data values
-    doc.text("8517", margin + 20, dataY + 7);
-    doc.text("86,00,000.00", margin + colWidth + 10, dataY + 7);
-    doc.text("6%", margin + colWidth * 2.25 - 2, dataY + 7);
-    doc.text("5,16,000.00", margin + colWidth * 2.75 - 7, dataY + 7);
-    doc.text("6%", margin + colWidth * 3.25 - 2, dataY + 7);
-    doc.text("5,16,000.00", margin + colWidth * 3.75 - 7, dataY + 7);
-    doc.text("10,32,000.00", margin + colWidth * 4.5 - 10, dataY + 7);
+    const cgstRate = 9; // CGST rate in percentage
+    const sgstRate = 9; // SGST rate in percentage
+    const cgstAmount = (subtotal * (cgstRate / 100)).toFixed(2);
+    const sgstAmount = (subtotal * (sgstRate / 100)).toFixed(2);
+    const totalTaxAmount = (
+      parseFloat(cgstAmount) + parseFloat(sgstAmount)
+    ).toFixed(2);
+
+    doc.text("8517", margin + 20, dataY + 7); // HSN/SAC
+    doc.text(subtotal.toFixed(2), margin + colWidth + 10, dataY + 7); // Taxable Value
+    doc.text(`${cgstRate}%`, margin + colWidth * 2.25 - 2, dataY + 7); // CGST Rate
+    doc.text(cgstAmount, margin + colWidth * 2.75 - 7, dataY + 7); // CGST Amount
+    doc.text(`${sgstRate}%`, margin + colWidth * 3.25 - 2, dataY + 7); // SGST Rate
+    doc.text(sgstAmount, margin + colWidth * 3.75 - 7, dataY + 7); // SGST Amount
+    doc.text(totalTaxAmount, margin + colWidth * 4.5 - 10, dataY + 7); // Total Tax Amount
 
     // Total row
     const totalY = dataY + 10;
@@ -577,10 +589,10 @@ const InvoiceForm = ({ onAddInvoice }) => {
 
     doc.setFont(undefined, "bold");
     doc.text("Total", margin + 20, totalY + 7);
-    doc.text("86,00,000.00", margin + colWidth + 10, totalY + 7);
-    doc.text("5,16,000.00", margin + colWidth * 2.75 - 7, totalY + 7);
-    doc.text("5,16,000.00", margin + colWidth * 3.75 - 7, totalY + 7);
-    doc.text("10,32,000.00", margin + colWidth * 4.5 - 10, totalY + 7);
+    doc.text(subtotal.toFixed(2), margin + colWidth + 10, totalY + 7);
+    doc.text(cgstAmount, margin + colWidth * 2.75 - 7, totalY + 7);
+    doc.text(sgstAmount, margin + colWidth * 3.75 - 7, totalY + 7);
+    doc.text(totalTaxAmount, margin + colWidth * 4.5 - 10, totalY + 7);
 
     // Tax amount in words
     const taxWordsY = totalY + 15;

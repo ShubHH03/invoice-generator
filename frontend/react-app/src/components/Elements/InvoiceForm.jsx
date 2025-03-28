@@ -362,7 +362,7 @@ const InvoiceForm = ({ onAddInvoice }) => {
     doc.setFontSize(8);
     doc.setFont(undefined, "bold");
 
-    // Redraw header text with new positioning
+    // Table header text
     currentX = margin;
     doc.text("Sl", currentX + 1, tableY + 6);
     currentX += colWidths.slNo;

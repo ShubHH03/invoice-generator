@@ -49,33 +49,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 const customerData = [
   {
     name: "John Doe",
-    companyName: "ABC Corp",
-    email: "john@abccorp.com",
-    phone: "+1-234-567-8901",
+    numberOfInvoices: 5,
+    totalInvoiced: 25000,
+    totalUnpaid: 10000,
   },
   {
     name: "Jane Smith",
-    companyName: "XYZ Industries",
-    email: "jane@xyz.com",
-    phone: "+1-234-567-8902",
+    numberOfInvoices: 3,
+    totalInvoiced: 15000,
+    totalUnpaid: 5000,
   },
   {
     name: "Mike Johnson",
-    companyName: "Tech Solutions",
-    email: "mike@techsol.com",
-    phone: "+1-234-567-8903",
+    numberOfInvoices: 7,
+    totalInvoiced: 35000,
+    totalUnpaid: 12000,
   },
   {
     name: "Sarah Wilson",
-    companyName: "Global Services",
-    email: "sarah@global.com",
-    phone: "+1-234-567-8904",
+    numberOfInvoices: 4,
+    totalInvoiced: 20000,
+    totalUnpaid: 8000,
   },
   {
     name: "David Brown",
-    companyName: "Innovation Ltd",
-    email: "david@innovation.com",
-    phone: "+1-234-567-8905",
+    numberOfInvoices: 6,
+    totalInvoiced: 30000,
+    totalUnpaid: 15000,
   },
 ];
 
@@ -90,6 +90,7 @@ const Customers = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [customerType, setCustomerType] = useState("business");
+  const [gstApplicable, setGstApplicable] = useState(false);
   const rowsPerPage = 10;
 
   // Get dynamic columns from first data item
@@ -423,23 +424,34 @@ const Customers = () => {
             </div>
 
             {/* Primary Contact */}
-            <div className="flex flex-col space-y-1">
-              <div className="flex items-center space-x-1">
-                <Label className="text-sm font-medium">Customer Name</Label>
+            <div className="flex space-x-4">
+              {/* Customer Name */}
+              <div className="flex flex-col space-y-1 w-5/6">
+                <div className="flex items-center space-x-1">
+                  <Label className="text-sm font-medium">Customer Name</Label>
+                </div>
+                <div className="flex space-x-2">
+                  <Select defaultValue="mr">
+                    <SelectTrigger className="max-w-20">
+                      <SelectValue placeholder="Title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mr">Mr.</SelectItem>
+                      <SelectItem value="ms">Ms.</SelectItem>
+                      <SelectItem value="mrs">Mrs.</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input placeholder="First Name" />
+                  <Input placeholder="Last Name" />
+                </div>
               </div>
-              <div className="flex space-x-2">
-                <Select>
-                  <SelectTrigger className="max-w-32">
-                    <SelectValue placeholder="Salutation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mr">Mr.</SelectItem>
-                    <SelectItem value="ms">Ms.</SelectItem>
-                    <SelectItem value="mrs">Mrs.</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input placeholder="First Name" />
-                <Input placeholder="Last Name" />
+
+              {/* PAN Number */}
+              <div className="flex flex-col space-y-1 w-1/2">
+                <div className="flex items-center space-x-1">
+                  <Label className="text-sm font-medium">PAN No.</Label>
+                </div>
+                <Input placeholder="Enter PAN Number" className="w-full" />
               </div>
             </div>
 
@@ -461,17 +473,38 @@ const Customers = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">GSTIN/UIN</Label>
-                <Input placeholder="GST Number" />
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">State Code</Label>
-                <Input placeholder="State Code" />
-              </div>
+            <div className="flex items-center space-x-2 mb-4">
+              <Label className="text-sm font-medium">Is GST Applicable?</Label>
+              <input
+                type="radio"
+                name="gstApplicable"
+                value="yes"
+                onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              />{" "}
+              Yes
+              <input
+                type="radio"
+                name="gstApplicable"
+                value="no"
+                defaultChecked
+                onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              />{" "}
+              No
             </div>
+
+            {gstApplicable && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">GSTIN/UIN</Label>
+                  <Input placeholder="GST Number" />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">State Code</Label>
+                  <Input placeholder="State Code" />
+                </div>
+              </div>
+            )}
 
             {/* Addresses - New Section */}
             <div className="pt-2">
@@ -483,20 +516,37 @@ const Customers = () => {
 
                 <TabsContent value="billing" className="ml-2 mt-4">
                   <div className="flex flex-col space-y-3">
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">
-                        Country/Region
-                      </Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="india">India</SelectItem>
-                          <SelectItem value="us">United States</SelectItem>
-                          <SelectItem value="uk">United Kingdom</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">
+                          Country/Region
+                        </Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="india">India</SelectItem>
+                            <SelectItem value="us">United States</SelectItem>
+                            <SelectItem value="uk">United Kingdom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">State</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select State" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="maharashtra">
+                              Maharashtra
+                            </SelectItem>
+                            <SelectItem value="delhi">Delhi</SelectItem>
+                            <SelectItem value="karnataka">Karnataka</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="flex space-x-4 ">
@@ -520,22 +570,6 @@ const Customers = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col space-y-1">
-                        <Label className="text-sm font-medium">State</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select State" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="maharashtra">
-                              Maharashtra
-                            </SelectItem>
-                            <SelectItem value="delhi">Delhi</SelectItem>
-                            <SelectItem value="karnataka">Karnataka</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex flex-col space-y-1">
                         <Label className="text-sm font-medium">City</Label>
                         <Select>
                           <SelectTrigger>
@@ -547,6 +581,20 @@ const Customers = () => {
                             <SelectItem value="nagpur">Nagpur</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-1">
+                          <Label className="text-sm font-medium">
+                            Contact No.
+                          </Label>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Phone className="h-4 w-4" />
+                          </div>
+                          <Input className="pl-10 w-full" placeholder="Phone" />
+                        </div>
                       </div>
                     </div>
 
@@ -573,7 +621,7 @@ const Customers = () => {
                       <div className="flex flex-col space-y-1 w-1/2">
                         <div className="flex items-center space-x-1">
                           <Label className="text-sm font-medium">
-                            Contact No.
+                            Alternate Contact No.
                           </Label>
                         </div>
                         <div className="relative">
@@ -596,20 +644,37 @@ const Customers = () => {
                   </div> */}
 
                   <div className="flex flex-col space-y-3">
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">
-                        Country/Region
-                      </Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="india">India</SelectItem>
-                          <SelectItem value="us">United States</SelectItem>
-                          <SelectItem value="uk">United Kingdom</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">
+                          Country/Region
+                        </Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="india">India</SelectItem>
+                            <SelectItem value="us">United States</SelectItem>
+                            <SelectItem value="uk">United Kingdom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">State</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select State" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="maharashtra">
+                              Maharashtra
+                            </SelectItem>
+                            <SelectItem value="delhi">Delhi</SelectItem>
+                            <SelectItem value="karnataka">Karnataka</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="flex space-x-4 ">
@@ -633,22 +698,6 @@ const Customers = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col space-y-1">
-                        <Label className="text-sm font-medium">State</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select State" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="maharashtra">
-                              Maharashtra
-                            </SelectItem>
-                            <SelectItem value="delhi">Delhi</SelectItem>
-                            <SelectItem value="karnataka">Karnataka</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex flex-col space-y-1">
                         <Label className="text-sm font-medium">City</Label>
                         <Select>
                           <SelectTrigger>
@@ -660,6 +709,20 @@ const Customers = () => {
                             <SelectItem value="nagpur">Nagpur</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-1">
+                          <Label className="text-sm font-medium">
+                            Contact No.
+                          </Label>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Phone className="h-4 w-4" />
+                          </div>
+                          <Input className="pl-10 w-full" placeholder="Phone" />
+                        </div>
                       </div>
                     </div>
 
@@ -686,7 +749,7 @@ const Customers = () => {
                       <div className="flex flex-col space-y-1 w-1/2">
                         <div className="flex items-center space-x-1">
                           <Label className="text-sm font-medium">
-                            Contact No.
+                            Alternate Contact No.
                           </Label>
                         </div>
                         <div className="relative">

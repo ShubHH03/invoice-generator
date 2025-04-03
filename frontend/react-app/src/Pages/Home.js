@@ -1,9 +1,8 @@
 import React, { useState,useMemo, useEffect } from "react";
-import {  LayoutDashboard, FilePlus2, ShoppingBag, UserPlus, LayoutList } from "lucide-react";
+import {  LayoutDashboard, FilePlus2, ShoppingBag, UserPlus, LayoutList, Import } from "lucide-react";
 import ReportGenerator from "../components/MainDashboardComponents/Invoice";
 import { cn } from "../lib/utils";
 import { ScrollArea } from "../components/ui/scroll-area";
-
 import Sidebar from "../components/Sidebar";
 import MainDashboard from "../components/MainDashboardComponents/MainDashboard";
 import Eligibility from "../components/MainDashboardComponents/Items";
@@ -13,6 +12,7 @@ import { BreadcrumbDynamic } from "../components/BreadCrumb";
 import { useBreadcrumb } from '../contexts/BreadcrumbContext';
 import { useParams } from "react-router-dom";
 import Company from "../components/MainDashboardComponents/Company";
+import TallyDirectImport from "../components/ImportToTally/TallyDirectImport";
 
 const Dashboard = () => {
   
@@ -58,11 +58,11 @@ const Dashboard = () => {
       url: "#",
       icon: ShoppingBag,
     },
-    // {
-    //   title: "Billing",
-    //   url: "#",
-    //   icon: ReceiptIndianRupee,
-    // },
+    {
+      title: "Import to Tally",
+      url: "#",
+      icon: Import,
+    },
   ];
   useEffect(() => {
       if (!defaultTab || defaultTab==="defaultTab") setActiveTab(navItems[0].title);
@@ -112,8 +112,9 @@ const Dashboard = () => {
               {activeTab === "Customers" && <Customers />}
               {activeTab === "Items" && <Eligibility />}
               {activeTab === "Invoice" && <ReportGenerator />}
-                {activeTab === "Company" && <Company />}
-            </main>
+              {activeTab === "Company" && <Company />}
+              {/* {activeTab === "Import to Tally" && <TallyDirectImport />} */}
+              </main>
           </div>
         </ScrollArea>
         <Toaster />

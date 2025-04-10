@@ -58,11 +58,11 @@ const Dashboard = () => {
       url: "#",
       icon: ShoppingBag,
     },
-    {
-      title: "Import to Tally",
-      url: "#",
-      icon: Import,
-    },
+    // {
+    //   title: "Import to Tally",
+    //   url: "#",
+    //   icon: Import,
+    // },
   ];
   useEffect(() => {
       if (!defaultTab || defaultTab==="defaultTab") setActiveTab(navItems[0].title);

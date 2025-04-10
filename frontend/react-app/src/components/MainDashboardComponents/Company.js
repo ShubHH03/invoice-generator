@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Phone, Mail } from "lucide-react";
+import { Search, Plus, Phone, Mail, Calendar } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -88,7 +88,10 @@ const Company = () => {
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [customerType, setCustomerType] = useState("business");
+  const [companyType, setCompanyType] = useState("manufacturer");
+  const [gstApplicable, setGstApplicable] = useState();
+  const [invoiceDueDays, setInvoiceDueDays] = useState("30"); // Default 30 days`
+
   const rowsPerPage = 10;
 
   // Get dynamic columns from first data item
@@ -391,6 +394,44 @@ const Company = () => {
             <DialogTitle>Create New Company</DialogTitle>
           </DialogHeader>
           <form className="space-y-4">
+            <div className="flex items-center space-x-4">
+              {/* Label */}
+              <Label className="text-sm font-medium">Company Type</Label>
+
+              {/* Radio Buttons */}
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="companyType"
+                    value="manufacturer"
+                    checked={companyType === "manufacturer"}
+                    onChange={() => setCompanyType("manufacturer")}
+                  />
+                  <span>Manufacturer</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="companyType"
+                    value="trader"
+                    checked={companyType === "trader"}
+                    onChange={() => setCompanyType("trader")}
+                  />
+                  <span>Trader</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="companyType"
+                    value="services"
+                    checked={companyType === "services"}
+                    onChange={() => setCompanyType("services")}
+                  />
+                  <span>Services</span>
+                </label>
+              </div>
+            </div>
             <div className="flex space-x-4">
               {/* Company Name */}
               <div className="flex flex-col space-y-1 w-1/2">
@@ -408,122 +449,152 @@ const Company = () => {
                 </Select>
               </div>
             </div>
+  
+            {/* Due Date */}
+            {/* <div className="flex flex-col space-y-1">
+              <Label className="text-sm font-medium">
+                Default Invoice Due Date
+              </Label>
+              <Select value={invoiceDueDays} onValueChange={setInvoiceDueDays}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select due period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 Days</SelectItem>
+                  <SelectItem value="30">30 Days</SelectItem>
+                  <SelectItem value="45">45 Days</SelectItem>
+                  <SelectItem value="60">60 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-gray-500">
+                Days after invoice date
+              </span>
+            </div> */}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">GSTIN/UIN</Label>
-                <Input placeholder="GST Number" />
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">State Code</Label>
-                <Input placeholder="State Code" />
-              </div>
+            <div className="flex items-center space-x-2 mb-4">
+              <Label className="text-sm font-medium">Is GST Applicable?</Label>
+              <input
+                type="radio"
+                name="gstApplicable"
+                value="yes"
+                onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              />{" "}
+              Yes
+              <input
+                type="radio"
+                name="gstApplicable"
+                value="no"
+                defaultChecked
+                onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              />{" "}
+              No
             </div>
 
+            {gstApplicable && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">GSTIN/UIN</Label>
+                  <Input placeholder="GST Number" />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">State Code</Label>
+                  <Input placeholder="State Code" />
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col space-y-3">
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">
-                        Country/Region
-                      </Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="india">India</SelectItem>
-                          <SelectItem value="us">United States</SelectItem>
-                          <SelectItem value="uk">United Kingdom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div className="flex flex-col space-y-1">
+                <Label className="text-sm font-medium">Country/Region</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="india">India</SelectItem>
+                    <SelectItem value="us">United States</SelectItem>
+                    <SelectItem value="uk">United Kingdom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <div className="flex space-x-4 ">
-                      <div className="flex flex-col space-y-1 w-1/2">
-                        <Label className="text-sm font-medium">
-                          Address Line 1
-                        </Label>
-                        <Textarea
-                          placeholder="Street Address, Building Name"
-                          rows={2}
-                        />
-                      </div>
+              <div className="flex space-x-4 ">
+                <div className="flex flex-col space-y-1 w-1/2">
+                  <Label className="text-sm font-medium">Address Line 1</Label>
+                  <Textarea
+                    placeholder="Street Address, Building Name"
+                    rows={2}
+                  />
+                </div>
 
-                      <div className="flex flex-col space-y-1 w-1/2">
-                        <Label className="text-sm font-medium">
-                          Address Line 2
-                        </Label>
-                        <Textarea placeholder="Locality, Area" rows={2} />
-                      </div>
-                    </div>
+                <div className="flex flex-col space-y-1 w-1/2">
+                  <Label className="text-sm font-medium">Address Line 2</Label>
+                  <Textarea placeholder="Locality, Area" rows={2} />
+                </div>
+              </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col space-y-1">
-                        <Label className="text-sm font-medium">State</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select State" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="maharashtra">
-                              Maharashtra
-                            </SelectItem>
-                            <SelectItem value="delhi">Delhi</SelectItem>
-                            <SelectItem value="karnataka">Karnataka</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">State</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select State" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maharashtra">Maharashtra</SelectItem>
+                      <SelectItem value="delhi">Delhi</SelectItem>
+                      <SelectItem value="karnataka">Karnataka</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                      <div className="flex flex-col space-y-1">
-                        <Label className="text-sm font-medium">City</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select City" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mumbai">Mumbai</SelectItem>
-                            <SelectItem value="pune">Pune</SelectItem>
-                            <SelectItem value="nagpur">Nagpur</SelectItem>
-                          </SelectContent> 
-                        </Select>
-                      </div>
-                    </div>
+                <div className="flex flex-col space-y-1">
+                  <Label className="text-sm font-medium">City</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mumbai">Mumbai</SelectItem>
+                      <SelectItem value="pune">Pune</SelectItem>
+                      <SelectItem value="nagpur">Nagpur</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                    <div className="flex space-x-4">
-                      {/* Email Address */}
-                      <div className="flex flex-col space-y-1 w-1/2">
-                        <div className="flex items-center space-x-1">
-                          <Label className="text-sm font-medium">
-                            Email Address
-                          </Label>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Mail className="h-4 w-4" />
-                          </div>
-                          <Input
-                            className="pl-10 w-full"
-                            placeholder="Email Address"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Phone Number */}
-                      <div className="flex flex-col space-y-1 w-1/2">
-                        <div className="flex items-center space-x-1">
-                          <Label className="text-sm font-medium">
-                            Contact No.
-                          </Label>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <Phone className="h-4 w-4" />
-                          </div>
-                          <Input className="pl-10 w-full" placeholder="Phone" />
-                        </div>
-                      </div>
-                    </div>
+              <div className="flex space-x-4">
+                {/* Email Address */}
+                <div className="flex flex-col space-y-1 w-1/2">
+                  <div className="flex items-center space-x-1">
+                    <Label className="text-sm font-medium">Email Address</Label>
                   </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <Input
+                      className="pl-10 w-full"
+                      placeholder="Email Address"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone Number */}
+                <div className="flex flex-col space-y-1 w-1/2">
+                  <div className="flex items-center space-x-1">
+                    <Label className="text-sm font-medium">Contact No.</Label>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <Input className="pl-10 w-full" placeholder="Phone" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </form>
           <DialogFooter>
             <Button

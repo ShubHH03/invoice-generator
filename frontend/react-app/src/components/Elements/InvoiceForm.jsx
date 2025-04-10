@@ -27,7 +27,7 @@ import {
 } from "../ui/table";
 import { Textarea } from "../ui/textarea";
 import { ChevronDown, ChevronUp, X, Download, Plus } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,18 +40,29 @@ import {
 } from "../ui/alert-dialog";
 import { jsPDF } from "jspdf";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "../ui/command";
+import { Check } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../ui/popover";
+import { Calendar } from "../ui/calendar";
 
 const InvoiceForm = () => {
   // State for form fields
-  const [showTotalSummary, setShowTotalSummary] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("INV-000002");
-  const [invoiceDate, setInvoiceDate] = useState(
-    format(new Date(), "dd/MM/yyyy")
-  );
-  const [dueDate, setDueDate] = useState(
-    format(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), "dd/MM/yyyy")
-  );
+  const [invoiceDate, setInvoiceDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState(new Date());
+  const [paymentTerms, setPaymentTerms] = useState("30"); // Default: Due On Receipt
   const [customerNotes, setCustomerNotes] = useState(
     "Thanks for your business."
   );
@@ -61,6 +72,16 @@ const InvoiceForm = () => {
   // State for invoice items
   const [items, setItems] = useState([
     { id: 1, details: "", quantity: "1.00", rate: "0.00", amount: "0.00" },
+  ]);
+
+  const [itemsList, setItemsList] = useState([
+    { id: 1, name: "Item 1", rate: "100.00" },
+    { id: 2, name: "Item 2", rate: "200.00" },
+    { id: 3, name: "Item 3", rate: "300.00" },
+    { id: 4, name: "Item 4", rate: "400.00" },
+    { id: 5, name: "Item 5", rate: "500.00" },
+    { id: 6, name: "Item 6", rate: "600.00" },
+    { id: 7, name: "Item 7", rate: "700.00" },
   ]);
 
   // State for calculations
@@ -82,6 +103,20 @@ const InvoiceForm = () => {
   useEffect(() => {
     calculateTotals();
   }, [items]);
+
+  // Calculate due date based on selected payment terms
+  useEffect(() => {
+    if (invoiceDate && paymentTerms) {
+      const days = parseInt(paymentTerms, 10);
+      const newDueDate = addDays(new Date(invoiceDate), days);
+      setDueDate(newDueDate);
+    }
+  }, [invoiceDate, paymentTerms]);
+
+  // Handle payment terms change
+  const handleTermsChange = (value) => {
+    setPaymentTerms(value);
+  };
 
   // Cleanup effect for PDF URL
   useEffect(() => {
@@ -716,25 +751,58 @@ const InvoiceForm = () => {
             <CardContent className="mt-4">
               <form onSubmit={(e) => e.preventDefault()}>
                 <div className="space-y-6">
-                  {/* Customer Name */}
+                  {/* Company Name and Customer Name */}
                   <div className="flex items-start gap-4">
                     <Label htmlFor="companyName" className="w-32 pt-2">
                       Company Name
                     </Label>
-                    <div className="flex-1 flex gap-2 ">
-                      <Select
-                        value={customerName}
-                        onValueChange={setCustomerName}
-                      >
-                        <SelectTrigger id="customerName" className="flex-1">
-                          <SelectValue placeholder="Select or add a customer" />
+                    <div className="flex-1">
+                      <Select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select or add company" />
                         </SelectTrigger>
-                        <SelectContent position="popper">
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="p-0">
+                          <Command className="rounded-md border-none bg-background">
+                            <div className="p-2 border-b flex gap-2">
+                              <div className="relative flex-1">
+                                <CommandInput
+                                  placeholder="Search companies..."
+                                  className="h-10"
+                                />
+                              </div>
+                              <Button size="sm" className="h-10">
+                                <Plus className="h-4 w-4" /> Add
+                              </Button>
+                            </div>
+                            <CommandEmpty>
+                              <div className="p-4 max-w-[600px] text-center text-muted-foreground">
+                                <p className="text-md">
+                                  No matching companies found
+                                </p>
+                                <p className="text-sm mt-1">
+                                  Click the{" "}
+                                  <Plus className="h-3 w-3 inline-block mx-1" />{" "}
+                                  icon above to add a new company
+                                </p>
+                              </div>
+                            </CommandEmpty>
+                            <div className="max-h-[200px] overflow-y-auto">
+                              <CommandGroup>
+                                <CommandItem className="flex items-center">
+                                  <div className="flex-1">
+                                    <Check className="mr-2 h-4 w-4 opacity-0" />
+                                    Company A
+                                  </div>
+                                </CommandItem>
+                                <CommandItem className="flex items-center">
+                                  <div className="flex-1">
+                                    <Check className="mr-2 h-4 w-4 opacity-0" />
+                                    Company B
+                                  </div>
+                                </CommandItem>
+                              </CommandGroup>
+                            </div>
+                          </Command>
                         </SelectContent>
                       </Select>
                     </div>
@@ -742,20 +810,51 @@ const InvoiceForm = () => {
                     <Label htmlFor="customerName" className="w-30 pt-2 ml-6">
                       Customer Name
                     </Label>
-                    <div className="flex-1 flex gap-2">
-                      <Select
-                        value={customerName}
-                        onValueChange={setCustomerName}
-                      >
-                        <SelectTrigger id="customerName" className="flex-1">
-                          <SelectValue placeholder="Select or add a customer" />
+                    <div className="flex-1">
+                      <Select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select or add customer" />
                         </SelectTrigger>
-                        <SelectContent position="popper">
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="p-0">
+                          <Command className="rounded-md border-none bg-background">
+                            <div className="p-2 border-b flex gap-2">
+                              <div className="relative flex-1">
+                                <CommandInput
+                                  placeholder="Search customers..."
+                                  className="h-10"
+                                />
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="px-2 h-10"
+                              >
+                                <Plus className="h-4 w-4" /> Add
+                              </Button>
+                            </div>
+                            <CommandEmpty>
+                              <div className="p-4 max-w-[600px] text-center text-muted-foreground">
+                                <p className="text-md">
+                                  No matching customers found
+                                </p>
+                                <p className="text-sm mt-1">
+                                  Click the{" "}
+                                  <Plus className="h-3 w-3 inline-block mx-1" />{" "}
+                                  icon above to add a new customer
+                                </p>
+                              </div>
+                            </CommandEmpty>
+                            <div className="max-h-[200px] overflow-y-auto">
+                              <CommandGroup>
+                                <CommandItem className="flex items-center">
+                                  <div className="flex-1">
+                                    <Check className="mr-2 h-4 w-4 opacity-0" />
+                                    Customer Name
+                                  </div>
+                                </CommandItem>
+                              </CommandGroup>
+                            </div>
+                          </Command>
                         </SelectContent>
                       </Select>
                     </div>
@@ -788,27 +887,76 @@ const InvoiceForm = () => {
                       Invoice Date
                     </Label>
                     <div className="flex-1 relative">
-                      <Input
-                        id="invoiceDate"
-                        type="text"
-                        placeholder="DD/MM/YYYY"
-                        className="flex-1"
-                        value={invoiceDate}
-                        onChange={(e) => setInvoiceDate(e.target.value)}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            id="invoiceDate"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center"
+                          >
+                            {invoiceDate
+                              ? format(invoiceDate, "dd/MM/yyyy")
+                              : "DD/MM/YYYY"}
+                            <CalendarIcon className="h-4 w-4 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={invoiceDate}
+                            onSelect={setInvoiceDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
+
+                    <Label htmlFor="terms" className="w-28 pt-2 ml-6">
+                      Terms
+                    </Label>
+                    <div className="flex-1 relative">
+                      <Select
+                        value={paymentTerms}
+                        onValueChange={handleTermsChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Due On Receipt</SelectItem>
+                          <SelectItem value="15">Net 15</SelectItem>
+                          <SelectItem value="30">Net 30</SelectItem>
+                          <SelectItem value="45">Net 45</SelectItem>
+                          <SelectItem value="60">Net 60</SelectItem>
+                          <SelectItem value="90">Net 90</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <Label htmlFor="dueDate" className="w-28 pt-2 ml-6">
                       Due Date
                     </Label>
                     <div className="flex-1 relative">
-                      <Input
-                        id="dueDate"
-                        type="text"
-                        placeholder="DD/MM/YYYY"
-                        className="flex-1"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            id="dueDate"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center"
+                          >
+                            {dueDate
+                              ? format(dueDate, "dd/MM/yyyy")
+                              : "DD/MM/YYYY"}
+                            <CalendarIcon className="h-4 w-4 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={dueDate}
+                            onSelect={setDueDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
@@ -836,24 +984,60 @@ const InvoiceForm = () => {
                         {items.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell>
-                              <Input
-                                placeholder="Type or click to select an item."
-                                className="border-0 bg-transparent"
-                                value={item.details}
-                                onChange={(e) => {
-                                  const updatedItems = items.map((i) =>
-                                    i.id === item.id
-                                      ? { ...i, details: e.target.value }
-                                      : i
-                                  );
-                                  setItems(updatedItems);
-                                }}
-                              />
+                              <div className="w-full">
+                                <Select className="w-full">
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select or add item" />
+                                  </SelectTrigger>
+                                  <SelectContent className="p-0">
+                                    <Command className="rounded-md border-none bg-background">
+                                      <div className="p-2 border-b flex gap-2">
+                                        <div className="relative flex-1">
+                                          <CommandInput
+                                            placeholder="Search items..."
+                                            className="h-10"
+                                          />
+                                        </div>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="px-2 h-10"
+                                        >
+                                          <Plus className="h-4 w-4" /> Add
+                                        </Button>
+                                      </div>
+                                      <CommandEmpty>
+                                        <div className="p-4 max-w-[600px] text-center text-muted-foreground">
+                                          <p className="text-md">
+                                            No matching items found
+                                          </p>
+                                          <p className="text-sm mt-1">
+                                            Click the{" "}
+                                            <Plus className="h-3 w-3 inline-block mx-1" />{" "}
+                                            icon above to add a new items
+                                          </p>
+                                        </div>
+                                      </CommandEmpty>
+                                      <div className="max-h-[200px] overflow-y-auto">
+                                        <CommandGroup>
+                                          <CommandItem className="flex items-center">
+                                            <div className="flex-1">
+                                              <Check className="mr-2 h-4 w-4 opacity-0" />
+                                              Item Name
+                                            </div>
+                                          </CommandItem>
+                                        </CommandGroup>
+                                      </div>
+                                    </Command>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </TableCell>
+
                             <TableCell className="text-center">
                               <Input
                                 value={item.quantity}
-                                className="text-center border-0 bg-transparent"
+                                className="text-center"
                                 onChange={(e) => {
                                   updateItemAmount(
                                     item.id,
@@ -866,7 +1050,7 @@ const InvoiceForm = () => {
                             <TableCell className="text-center">
                               <Input
                                 value={item.rate}
-                                className="text-center border-0 bg-transparent"
+                                className="text-center"
                                 onChange={(e) => {
                                   updateItemAmount(
                                     item.id,
@@ -879,7 +1063,7 @@ const InvoiceForm = () => {
                             <TableCell className="text-center">
                               <Input
                                 value={item.amount}
-                                className="text-center border-0 bg-transparent"
+                                className="text-center"
                                 readOnly
                               />
                             </TableCell>
@@ -964,46 +1148,6 @@ const InvoiceForm = () => {
                             ₹{(subtotal + subtotal * 0.18).toFixed(2)}
                           </span>
                         </div>
-
-                        {/* <Button
-                          type="button"
-                          variant="ghost"
-                          className="text-black flex items-center gap-1 p-0 h-auto hover:bg-white"
-                          onClick={() =>
-                            setShowTotalSummary(!showTotalSummary)
-                          }
-                        >
-                          <span>Show Total Summary</span>
-                          {showTotalSummary ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-
-                        {showTotalSummary && (
-                          <div className="mt-2 space-y-2 border-t pt-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Subtotal</span>
-                              <span>₹{subtotal.toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between text-sm">
-                              <span>CGST (9%)</span>
-                              <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between text-sm">
-                              <span>SGST (9%)</span>
-                              <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between font-medium">
-                              <span>Total</span>
-                              <span>₹{(subtotal + (subtotal * 0.18)).toFixed(2)}</span>
-                            </div>
-                          </div>
-                        )} */}
                       </div>
                     </div>
                   </div>
@@ -1011,7 +1155,7 @@ const InvoiceForm = () => {
                   {/*  Customer Notes */}
                   <div className="mt-6">
                     <Label htmlFor="customerNotes" className="block mb-2">
-                      Customer Notes
+                      Narration
                     </Label>
                     <Textarea
                       id="customerNotes"

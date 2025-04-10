@@ -90,7 +90,7 @@ const Customers = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [customerType, setCustomerType] = useState("business");
-  const [gstApplicable, setGstApplicable] = useState(false);
+  const [gstApplicable, setGstApplicable] = useState();
   const rowsPerPage = 10;
 
   // Get dynamic columns from first data item
@@ -110,7 +110,7 @@ const Customers = () => {
 
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
-    if (searchValue === "") {
+    if (searchValue === "") {  
       setFilteredData(customerData);
       setCurrentPage(1);
       return;
@@ -465,10 +465,15 @@ const Customers = () => {
               {/* Currency */}
               <div className="flex flex-col space-y-1 w-1/2">
                 <Label className="text-sm font-medium">Currency</Label>
-                <Select disabled>
+                <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="INR - Indian Rupee" />
+                    <SelectValue placeholder="Select Currency" />
                   </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inr">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="usd">USD - US Dollar</SelectItem>
+                    <SelectItem value="eur">EUR - Euro</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -486,7 +491,6 @@ const Customers = () => {
                 type="radio"
                 name="gstApplicable"
                 value="no"
-                defaultChecked
                 onChange={(e) => setGstApplicable(e.target.value === "yes")}
               />{" "}
               No

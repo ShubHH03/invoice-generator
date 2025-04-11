@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import './App.css';
 import Dashboard from './Pages/Home';
-import { ThemeProvider } from './components/theme-provider';
+import { ThemeProvider } from './components/ui/theme-provider';
 import { HashRouter, Routes, Route } from "react-router-dom";
 // import CaseDashboard from './Pages/CaseDashboard';
 

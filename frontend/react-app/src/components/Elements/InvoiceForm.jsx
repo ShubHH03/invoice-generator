@@ -49,12 +49,9 @@ import {
 } from "../ui/command";
 import { Check } from "lucide-react";
 import { Calendar as CalendarIcon } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
+import CustomerForm from "./CustomerForm";
 
 const InvoiceForm = () => {
   // State for form fields
@@ -62,6 +59,7 @@ const InvoiceForm = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("INV-000002");
   const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [dueDate, setDueDate] = useState(new Date());
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [paymentTerms, setPaymentTerms] = useState("30"); // Default: Due On Receipt
   const [customerNotes, setCustomerNotes] = useState(
     "Thanks for your business."
@@ -182,6 +180,20 @@ const InvoiceForm = () => {
     const margin = 10;
     const lineHeight = 5;
 
+    // Format dates properly
+    const formatDate = (date) => {
+      if (!date) return "";
+
+      // If it's a Date object, format it as DD MMM YYYY
+      if (date instanceof Date) {
+        const options = { day: "2-digit", month: "short", year: "numeric" };
+        return date.toLocaleDateString("en-US", options);
+      }
+
+      // If it's already a string, return it
+      return date;
+    };
+
     // Title
     doc.setFont(undefined, "bold");
     doc.setFontSize(14);
@@ -275,8 +287,11 @@ const InvoiceForm = () => {
       10
     );
     doc.text("Dated", midX + (pageWidth - margin - midX) / 2 + 5, margin + 5);
+
+    // Format the invoice date properly
+    const formattedInvoiceDate = formatDate(invoice.invoiceDate);
     doc.text(
-      invoice.invoiceDate || "15 Apr 2019",
+      formattedInvoiceDate || "15 Apr 2019",
       midX + (pageWidth - margin - midX) / 2 + 5,
       margin + 15
     );
@@ -677,6 +692,18 @@ const InvoiceForm = () => {
     return doc;
   };
 
+  // Handle saving new customer
+  const handleSaveCustomer = (customerData) => {
+    // Process the new customer data
+    console.log("New customer data:", customerData);
+
+    // Here you would typically add the customer to your data source
+    // For example:
+    // setCustomerData(prevData => [...prevData, customerData]);
+    // refreshCustomerList();
+
+    // Additional logic for saving customer to backend, etc.
+  };
   // Handle form submission
   const handleSubmit = (isDraft = false) => {
     // Create the invoice object
@@ -735,13 +762,7 @@ const InvoiceForm = () => {
 
   return (
     <div className="rounded-xl mt-2 space-y-6">
-      <Tabs defaultValue="single-stock">
-        <TabsList className="grid w-[500px] grid-cols-2 pb-10">
-          <TabsTrigger value="single-stock">Single-Stock</TabsTrigger>
-          <TabsTrigger value="multi-stock">Multi-Stock</TabsTrigger>
-        </TabsList>
-        <TabsContent value="single-stock">
-          <Card className="w-full shadow-sm border-gray-200">
+      <Card className="w-full shadow-sm border-gray-200">
             <CardHeader className="pb-4">
               <CardTitle>New Invoice</CardTitle>
               <CardDescription>
@@ -825,9 +846,9 @@ const InvoiceForm = () => {
                                 />
                               </div>
                               <Button
-                                variant="outline"
                                 size="sm"
                                 className="px-2 h-10"
+                                // onClick={() => setCustomerFormOpen(true)}
                               >
                                 <Plus className="h-4 w-4" /> Add
                               </Button>
@@ -863,7 +884,7 @@ const InvoiceForm = () => {
                   {/* Invoice Number */}
                   <div className="flex items-start gap-4">
                     <Label htmlFor="invoiceNumber" className="w-32 pt-2">
-                      Voucher No.
+                      Invoice No.
                     </Label>
                     <div className="flex-1 relative">
                       <Input
@@ -874,7 +895,7 @@ const InvoiceForm = () => {
                     </div>
 
                     <Label htmlFor="incomeLedger" className="w-28 pt-2 ml-6">
-                      Income Ledger
+                      Ledger
                     </Label>
                     <div className="flex-1 relative">
                       <Input id="incomeLedger" />
@@ -998,11 +1019,7 @@ const InvoiceForm = () => {
                                             className="h-10"
                                           />
                                         </div>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="px-2 h-10"
-                                        >
+                                        <Button size="sm" className="px-2 h-10">
                                           <Plus className="h-4 w-4" /> Add
                                         </Button>
                                       </div>
@@ -1240,406 +1257,12 @@ const InvoiceForm = () => {
               </AlertDialogContent>
             </AlertDialog>
           </Card>
-        </TabsContent>
-        <TabsContent value="multi-stock">
-          <Card className="w-full shadow-sm border-gray-200">
-            <CardHeader className="pb-4">
-              <CardTitle>New Invoice</CardTitle>
-              <CardDescription>
-                Fill in the details to create a new invoice
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-4">
-              <form onSubmit={(e) => e.preventDefault()}>
-                <div className="space-y-6">
-                  {/* Customer Name */}
-                  <div className="flex items-start gap-4">
-                    <Label htmlFor="companyName" className="w-32 pt-2">
-                      Company Name
-                    </Label>
-                    <div className="flex-1 flex gap-2 ">
-                      <Select
-                        value={customerName}
-                        onValueChange={setCustomerName}
-                      >
-                        <SelectTrigger id="customerName" className="flex-1">
-                          <SelectValue placeholder="Select or add a customer" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
 
-                    <Label htmlFor="customerName" className="w-28 pt-2 ml-6">
-                      Party Name
-                    </Label>
-                    <div className="flex-1 flex gap-2">
-                      <Select
-                        value={customerName}
-                        onValueChange={setCustomerName}
-                      >
-                        <SelectTrigger id="customerName" className="flex-1">
-                          <SelectValue placeholder="Select or add a customer" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Invoice Number, Saled Ledger & Voucher Name*/}
-                  <div className="flex items-start gap-4">
-                    <Label htmlFor="invoiceNumber" className="w-32 pt-2">
-                      Invoice No.
-                    </Label>
-                    <div className="flex-1 relative">
-                      <Input
-                        id="invoiceNumber"
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                      />
-                    </div>
-
-                    <Label htmlFor="salesLedger" className="w-28 pt-2 ml-4">
-                      Sales Ledger
-                    </Label>
-                    <div className="flex-1 relative">
-                      <Input id="salesLedger" />
-                    </div>
-
-                    {/* <Label htmlFor="voucherName" className="w-28 pt-2 ml-4">
-                      Voucher Name
-                    </Label>
-                    <div className="flex-1 relative">
-                      <Input id="voucherName" value="Sales" disabled />
-                    </div> */}
-                  </div>
-
-                  {/* Invoice Date */}
-                  <div className="flex items-start gap-4">
-                    <Label htmlFor="invoiceDate" className="w-32 pt-2">
-                      Invoice Date
-                    </Label>
-                    <div className="flex-1 relative">
-                      <Input
-                        id="invoiceDate"
-                        type="text"
-                        placeholder="DD/MM/YYYY"
-                        className="flex-1"
-                        value={invoiceDate}
-                        onChange={(e) => setInvoiceDate(e.target.value)}
-                      />
-                    </div>
-                    <Label htmlFor="dueDate" className="w-28 pt-2 ml-6">
-                      Due Date
-                    </Label>
-                    <div className="flex-1 relative">
-                      <Input
-                        id="dueDate"
-                        type="text"
-                        placeholder="DD/MM/YYYY"
-                        className="flex-1"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Item Table */}
-                  <div className="mt-8">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium text-lg">Item Table</h3>
-                    </div>
-
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-gray-50">
-                          <TableHead className="w-[50%]">
-                            ITEM DETAILS
-                          </TableHead>
-                          <TableHead className="text-center">
-                            QUANTITY
-                          </TableHead>
-                          <TableHead className="text-center">RATE</TableHead>
-                          <TableHead className="text-center">AMOUNT</TableHead>
-                          <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {items.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>
-                              <Input
-                                placeholder="Type or click to select an item."
-                                className="border-0 bg-transparent"
-                                value={item.details}
-                                onChange={(e) => {
-                                  const updatedItems = items.map((i) =>
-                                    i.id === item.id
-                                      ? { ...i, details: e.target.value }
-                                      : i
-                                  );
-                                  setItems(updatedItems);
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Input
-                                value={item.quantity}
-                                className="text-center border-0 bg-transparent"
-                                onChange={(e) => {
-                                  updateItemAmount(
-                                    item.id,
-                                    e.target.value,
-                                    item.rate
-                                  );
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Input
-                                value={item.rate}
-                                className="text-center border-0 bg-transparent"
-                                onChange={(e) => {
-                                  updateItemAmount(
-                                    item.id,
-                                    item.quantity,
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Input
-                                value={item.amount}
-                                className="text-center border-0 bg-transparent"
-                                readOnly
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeRow(item.id)}
-                                className="h-8 w-8 p-0 text-red-500"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-
-                    <div className="flex gap-4 mt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="bg-gray-50 border-gray-200 text-blue-500 flex items-center gap-1"
-                        onClick={addNewRow}
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add New Row</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="bg-gray-50 border-gray-200 text-blue-500 flex items-center gap-1"
-                        onClick={() => {
-                          // Add multiple empty rows
-                          const newRows = Array.from(
-                            { length: 5 },
-                            (_, index) => ({
-                              id: items.length + index + 1,
-                              details: "",
-                              quantity: "1.00",
-                              rate: "0.00",
-                              amount: "0.00",
-                            })
-                          );
-                          setItems([...items, ...newRows]);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add Items in Bulk</span>
-                      </Button>
-                    </div>
-
-                    {/* Total Section with GST */}
-                    <div className="flex justify-between items-center mt-6 border-t pt-4">
-                      <div></div>
-                      <div className="w-1/3">
-                        {/* Subtotal */}
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-black">Subtotal</span>
-                          <span>₹{subtotal.toFixed(2)}</span>
-                        </div>
-
-                        {/* CGST */}
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-black">CGST (9%)</span>
-                          <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                        </div>
-
-                        {/* SGST */}
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-black">SGST (9%)</span>
-                          <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                        </div>
-
-                        {/* Total */}
-                        <div className="flex justify-between items-center mb-2 border-t pt-2">
-                          <span className="text-black font-bold">
-                            Total ( ₹ )
-                          </span>
-                          <span className="font-medium">
-                            ₹{(subtotal + subtotal * 0.18).toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* <Button
-                          type="button"
-                          variant="ghost"
-                          className="text-black flex items-center gap-1 p-0 h-auto hover:bg-white"
-                          onClick={() =>
-                            setShowTotalSummary(!showTotalSummary)
-                          }
-                        >
-                          <span>Show Total Summary</span>
-                          {showTotalSummary ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-
-                        {showTotalSummary && (
-                          <div className="mt-2 space-y-2 border-t pt-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Subtotal</span>
-                              <span>₹{subtotal.toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between text-sm">
-                              <span>CGST (9%)</span>
-                              <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between text-sm">
-                              <span>SGST (9%)</span>
-                              <span>₹{(subtotal * 0.09).toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between font-medium">
-                              <span>Total</span>
-                              <span>₹{(subtotal + (subtotal * 0.18)).toFixed(2)}</span>
-                            </div>
-                          </div>
-                        )} */}
-                      </div>
-                    </div>
-                  </div>
-                  {/*  Customer Notes */}
-                  <div className="mt-6">
-                    <Label htmlFor="customerNotes" className="block mb-2">
-                      Customer Notes
-                    </Label>
-                    <Textarea
-                      id="customerNotes"
-                      placeholder="Thanks for your business."
-                      className="max-w-[500px]"
-                      value={customerNotes}
-                      onChange={(e) => setCustomerNotes(e.target.value)}
-                    />
-                    <p className="text-gray-500 text-xs mt-1">
-                      Will be displayed on the invoice
-                    </p>
-                  </div>
-
-                  {/* Terms and Conditions */}
-                  {showTerms && (
-                    <div className="mt-6">
-                      <Label
-                        htmlFor="termsAndConditions"
-                        className="block mb-2"
-                      >
-                        Terms and Conditions
-                      </Label>
-                      <Textarea
-                        id="termsAndConditions"
-                        placeholder="Enter your terms and conditions here."
-                        className="max-w-[500px]"
-                        value={termsAndConditions}
-                        onChange={(e) => setTermsAndConditions(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  {/* Additional Options */}
-                  <div className="space-y-2 mt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-gray-50 border-gray-200 text-blue-500 flex items-center gap-1"
-                      onClick={() => setShowTerms(!showTerms)}
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>
-                        {showTerms ? "Hide" : "Add"} Terms and conditions
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            </CardContent>
-            <CardFooter className="flex gap-2 border-t pt-4 justify-end">
-              <Button onClick={() => handleSubmit(true)}>Save</Button>
-              <Button variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
-            </CardFooter>
-
-            {/* Download Invoice Dialog */}
-            <AlertDialog
-              open={showDownloadDialog}
-              onOpenChange={setShowDownloadDialog}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Invoice Saved Successfully
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Your invoice has been saved. Would you like to download a
-                    PDF copy?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Close</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDownload}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Invoice
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* <CustomerForm
+        open={customerFormOpen}
+        onOpenChange={setCustomerFormOpen}
+        onSave={handleSaveCustomer}
+      /> */}
     </div>
   );
 };

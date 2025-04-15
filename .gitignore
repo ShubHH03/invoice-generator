@@ -102,6 +102,7 @@ Thumbs.db
 *.log
 *.sql
 *.sqlite
+*.sqlite3
 
 # Testing
 /coverage

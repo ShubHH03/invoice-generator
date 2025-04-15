@@ -25,34 +25,34 @@ class DatabaseManager {
 }
 
 // Test code
-const db = drizzle(createClient({ url: process.env.DB_FILE_NAME }));
+// const db = drizzle(createClient({ url: process.env.DB_FILE_NAME }));
 
-async function main() {
-  // const user = {
-  //   name: 'John',
-  //   email: 'john@example.com'
-  // };
+// async function main() {
+//   // const user = {
+//   //   name: 'John',
+//   //   email: 'john@example.com'
+//   // };
 
-  // await db.insert(users).values(user);
-  // console.log('New user created!');
+//   // await db.insert(users).values(user);
+//   // console.log('New user created!');
 
-  const allUsers = await db.select().from(users);
-  console.log('Getting all users from the database: ', users);
+//   const allUsers = await db.select().from(users);
+//   console.log('Getting all users from the database: ', users);
 
-  await db.update(users)
-  .set({ name: 'Mr. Vivek' })
-  .where(eq(users.name, 'Mr. Dan'));
+//   await db.update(users)
+//   .set({ name: 'Mr. Vivek' })
+//   .where(eq(users.name, 'Mr. Dan'));
 
-  console.log('User updated!');
-  const updatedUsers = await db.select().from(users);
-  console.log('Updated users: ', updatedUsers);
+//   console.log('User updated!');
+//   const updatedUsers = await db.select().from(users);
+//   console.log('Updated users: ', updatedUsers);
 
 
-  // await db.delete(users).where(eq(users.name, 'John'));
-  // console.log('User deleted!');
-}
+//   // await db.delete(users).where(eq(users.name, 'John'));
+//   // console.log('User deleted!');
+// }
 
-main();
+// main();
 
 // Uncomment to export the DatabaseManager instance
 module.exports = DatabaseManager.getInstance();

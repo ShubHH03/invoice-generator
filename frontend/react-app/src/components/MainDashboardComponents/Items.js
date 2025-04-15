@@ -58,17 +58,6 @@ const Items = () => {
   const [itemType, setItemType] = useState("goods");
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = itemData.length > 0 ? Object.keys(itemData[0]) : [];
-
-  // Determine which columns are numeric
-  const numericColumns = columns.filter((column) =>
-    itemData.some((row) => {
-      const value = String(row[column]);
-      return !isNaN(Number.parseFloat(value)) && !value.includes("-");
-    })
-  );
-
   useEffect(() => {
     setFilteredData(itemData);
   }, []);
@@ -373,14 +362,8 @@ const Items = () => {
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
               <Label className="text-sm font-medium">Unit Type</Label>
-              {/* <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-4 w-4 text-gray-400" />
-                </TooltipTrigger>
-                <TooltipContent>Select a unit for this item</TooltipContent>
-              </Tooltip> */}
             </div>
-            <Input placeholder="" />
+            <Input placeholder="e.g. Box" />
           </div>
 
           {/* Selling Price */}

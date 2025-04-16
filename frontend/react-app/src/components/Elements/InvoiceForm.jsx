@@ -792,6 +792,7 @@ const InvoiceForm = () => {
                                 />
                               </div>
                               <Button size="sm" className="h-10">
+                                {/* Add company */}
                                 <Plus className="h-4 w-4" /> Add
                               </Button>
                             </div>
@@ -845,11 +846,8 @@ const InvoiceForm = () => {
                                   className="h-10"
                                 />
                               </div>
-                              <Button
-                                size="sm"
-                                className="px-2 h-10"
-                                // onClick={() => setCustomerFormOpen(true)}
-                              >
+                              <Button size="sm" className="px-2 h-10">
+                                {/* Add customer */}
                                 <Plus className="h-4 w-4" /> Add
                               </Button>
                             </div>
@@ -1020,6 +1018,7 @@ const InvoiceForm = () => {
                                           />
                                         </div>
                                         <Button size="sm" className="px-2 h-10">
+                                          {/* Add item */}
                                           <Plus className="h-4 w-4" /> Add
                                         </Button>
                                       </div>

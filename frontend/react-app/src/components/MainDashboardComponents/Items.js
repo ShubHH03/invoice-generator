@@ -58,6 +58,17 @@ const Items = () => {
   const [itemType, setItemType] = useState("goods");
   const rowsPerPage = 10;
 
+  // Get dynamic columns from first data item
+  const columns = itemData.length > 0 ? Object.keys(itemData[0]) : [];
+
+  // Determine which columns are numeric
+  const numericColumns = columns.filter((column) =>
+    itemData.some((row) => {
+      const value = String(row[column]);
+      return !isNaN(Number.parseFloat(value)) && !value.includes("-");
+    })
+  );
+
   useEffect(() => {
     setFilteredData(itemData);
   }, []);

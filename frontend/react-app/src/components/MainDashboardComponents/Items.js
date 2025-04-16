@@ -19,7 +19,7 @@ import {
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-
+import ItemForm from "../Elements/ItemForm"
 const itemData = [
   {
     name: "Web Development",
@@ -52,10 +52,8 @@ const Items = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [customerType, setCustomerType] = useState("business");
   const [itemFormOpen, setItemFormOpen] = useState(false);
-  const [itemType, setItemType] = useState("goods");
+
   const rowsPerPage = 10;
 
   // Get dynamic columns from first data item
@@ -165,6 +163,12 @@ const Items = () => {
       pageNumbers.push(totalPages);
     }
     return pageNumbers;
+  };
+
+
+  // Handler for saving the item data
+  const handleSaveItem = (formData) => {
+      setItemFormOpen(false);
   };
 
   return (
@@ -326,88 +330,15 @@ const Items = () => {
           <Loader2 className="animate-spin h-8 w-8 text-[#3498db]" />
         </div>
       )}
-      <Dialog open={itemFormOpen} onOpenChange={setItemFormOpen}>
-      <DialogContent className="max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create New Item</DialogTitle>
-        </DialogHeader>
-        <form className="space-y-4">
-          {/* Item Type */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Item Type</Label>
-            </div>
-            <div className="flex space-x-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="itemType"
-                  value="goods"
-                  checked={itemType === "goods"}
-                  onChange={() => setItemType("goods")}
-                />
-                <span>Goods</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="itemType"
-                  value="service"
-                  checked={itemType === "service"}
-                  onChange={() => setItemType("service")}
-                />
-                <span>Service</span>
-              </label>
-            </div>
-          </div>
 
-          {/* Item Name */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Item Name</Label>
-            </div>
-            <Input placeholder="" />
-          </div>
-
-          {/* Unit */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Unit Type</Label>
-            </div>
-            <Input placeholder="e.g. Box" />
-          </div>
-
-          {/* Selling Price */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Selling Price</Label>
-            </div>
-            <div className="flex">
-              <div className="bg-gray-100 border border-r-0 rounded-l px-3 flex items-center text-gray-500">
-                INR
-              </div>
-              <Input className="rounded-l-none" placeholder="" />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Description</Label>
-            </div>
-            <Textarea placeholder="" rows={3} />
-          </div>
-        </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setItemFormOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="default">Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-   </div>
- );
+      {/* Item Form Component */}
+      <ItemForm
+        open={itemFormOpen}
+        onOpenChange={setItemFormOpen}
+        onSave={handleSaveItem}
+      />
+    </div>
+  );
 };
 
 export default Items;

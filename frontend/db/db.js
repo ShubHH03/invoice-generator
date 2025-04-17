@@ -5,22 +5,32 @@ const { eq } = require("drizzle-orm");
 const { users } = require("../db/schema/User");
 
 class DatabaseManager {
-    static #instance = null;
-  
+  static #instance = null;
+
   static getInstance() {
     if (!DatabaseManager.#instance) {
       const dbUrl = process.env.DB_FILE_NAME;
       if (!dbUrl) {
-        throw new Error("DATABASE_URL is not defined in the environment variables.");
+        throw new Error(
+          "DATABASE_URL is not defined in the environment variables."
+        );
       }
-      
+
       // Initialize libsql client
       const client = createClient({ url: dbUrl });
-      
+
       // Create Drizzle ORM instance with the schema
-      DatabaseManager.#instance = drizzle(client);
+      DatabaseManager.#instance = new DatabaseManager(drizzle(client));
     }
     return DatabaseManager.#instance;
+  }
+
+  constructor(db) {
+    this.db = db;
+  }
+
+  getDatabase() {
+    return this.db;
   }
 }
 
@@ -47,7 +57,6 @@ class DatabaseManager {
 //   const updatedUsers = await db.select().from(users);
 //   console.log('Updated users: ', updatedUsers);
 
-
 //   // await db.delete(users).where(eq(users.name, 'John'));
 //   // console.log('User deleted!');
 // }
@@ -55,4 +64,4 @@ class DatabaseManager {
 // main();
 
 // Uncomment to export the DatabaseManager instance
-module.exports = DatabaseManager.getInstance();
+module.exports = DatabaseManager;

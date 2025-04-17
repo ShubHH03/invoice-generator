@@ -22,19 +22,25 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
-    onOpenChange(false);
+
+    console.log("Form data:", formData);
+
+    const result = await window.electron.addItems(formData);
+    if (result.success) {
+      console.log("Item saved:", result.result);
+      onOpenChange(false);
+    } else {
+      console.error("Failed to save item:", result.error);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>
-            Create New Item
-          </DialogTitle>
+          <DialogTitle>Create New Item</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {/* Item Type */}
@@ -49,8 +55,12 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
                   name="itemType"
                   value="goods"
                   checked={itemType === "goods"}
-                  onChange={() => handleInputChange("itemType", "goods")}
+                  onChange={() => {
+                    setItemType("goods");
+                    handleInputChange("itemType", "goods");
+                  }}
                 />
+
                 <span>Goods</span>
               </label>
               <label className="flex items-center space-x-2">
@@ -59,7 +69,10 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
                   name="itemType"
                   value="service"
                   checked={itemType === "service"}
-                  onChange={() => handleInputChange("itemType", "service")}
+                  onChange={() => {
+                    setItemType("service");
+                    handleInputChange("itemType", "service");
+                  }}
                 />
                 <span>Service</span>
               </label>

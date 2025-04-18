@@ -2,7 +2,7 @@ const { ipcMain } = require("electron");
 const DatabaseManager = require("../db/db");
 const { items } = require("../db/schema/Item");
 
-function registerMainDashboardIpc() {
+function registerItemDashboardIpc() {
   try {
     const dbManager = DatabaseManager.getInstance();
     const db = dbManager.getDatabase();
@@ -13,14 +13,13 @@ function registerMainDashboardIpc() {
       try {
         console.log("Received add-items request with data:", data);
         const result = await db.insert(items).values({
-          type: data.itemType || "goods",
+          type: data.itemType || null,
           name: data.name,
           unit: data.unit || null,
           sellingPrice: parseFloat(data.price || 0),
           description: data.description || null,
           currency: "INR", // Fixed for now
         });
-        console.log("Insert result:", result);
         return { success: true, result };
       } catch (err) {
         console.error("Insert error:", err);
@@ -33,4 +32,4 @@ function registerMainDashboardIpc() {
   }
 }
 
-module.exports = { registerMainDashboardIpc };
+module.exports = { registerItemDashboardIpc };

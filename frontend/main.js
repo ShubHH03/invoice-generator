@@ -3,7 +3,7 @@ const { autoUpdater } = require("electron-updater");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
-const { registerMainDashboardIpc } = require("./ipc/mainDashboard");
+const { registerItemDashboardIpc } = require("./ipc/itemDashboard");
 
 // Create logs directory
 const logDir = path.join(app.getPath("userData"), "logs");
@@ -82,7 +82,7 @@ function createWindow() {
   }
 
   console.log("Registering IPC handlers...");
-  registerMainDashboardIpc();
+  registerItemDashboardIpc();
   console.log("IPC handlers registered");
 }
 

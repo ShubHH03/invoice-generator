@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { Search, Loader2, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "../ui/table";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 import { Checkbox } from "../ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -18,46 +37,75 @@ import {
 } from "../ui/pagination";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import ItemForm from "../Elements/ItemForm"
-const itemData = [
-  {
-    name: "Web Development",
-    description: "Full stack web development services",
-    rate: 100
-  },
-  {
-    name: "UI/UX Design",
-    description: "User interface and experience design",
-    rate: 85
-  },
-  {
-    name: "Cloud Hosting",
-    description: "AWS cloud hosting services",
-    rate: 150
-  },
-  {
-    name: "Database Management",
-    description: "Database administration and optimization",
-    rate: 95
-  },
-];
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import ItemForm from "../Elements/ItemForm";
 
 const Items = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredData, setFilteredData] = useState(itemData);
+  const [filteredData, setFilteredData] = useState([]);
+  const [itemData, setItemData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [itemFormOpen, setItemFormOpen] = useState(false);
+  const [columns, setColumns] = useState([]);
 
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = itemData.length > 0 ? Object.keys(itemData[0]) : [];
+  // Fetch data from database
+  useEffect(() => {
+    const fetchItems = async () => {
+      setIsLoading(true);
+      try {
+        // Using the electron API from preload.js to get items
+        const response = await window.electron.getItem();
+        console.log("Items API response:", response);
+
+        if (response.success) {
+          const itemsData = response.items || [];
+          console.log("Items data:", itemsData);
+
+          // Format items if needed
+          const formattedItems = itemsData.map((item) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description || "",
+            rate:
+              item.sellingPrice !== undefined
+                ? parseFloat(item.sellingPrice)
+                : 0,
+            unit: item.unit || "",
+          }));
+
+          // Set the data
+          setItemData(formattedItems);
+          setFilteredData(formattedItems);
+
+          // Dynamically determine columns from first item
+          if (formattedItems.length > 0) {
+            setColumns(Object.keys(formattedItems[0]));
+          }
+        } else {
+          console.error("Failed to fetch items:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   // Determine which columns are numeric
   const numericColumns = columns.filter((column) =>
@@ -66,10 +114,6 @@ const Items = () => {
       return !isNaN(Number.parseFloat(value)) && !value.includes("-");
     })
   );
-
-  useEffect(() => {
-    setFilteredData(itemData);
-  }, []);
 
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
@@ -80,7 +124,7 @@ const Items = () => {
     }
 
     const filtered = itemData.filter((row) =>
-      Object.entries(row).some(([key, value]) => 
+      Object.entries(row).some(([key, value]) =>
         String(value).toLowerCase().includes(searchValue.toLowerCase())
       )
     );
@@ -91,13 +135,17 @@ const Items = () => {
 
   const handleCategorySelect = (category) => {
     setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((cat) => cat !== category) : [...prev, category]
+      prev.includes(category)
+        ? prev.filter((cat) => cat !== category)
+        : [...prev, category]
     );
   };
 
   const handleSelectAll = () => {
     const visibleCategories = getFilteredUniqueValues(currentFilterColumn);
-    const allSelected = visibleCategories.every((cat) => selectedCategories.includes(cat));
+    const allSelected = visibleCategories.every((cat) =>
+      selectedCategories.includes(cat)
+    );
     setSelectedCategories(allSelected ? [] : visibleCategories);
   };
 
@@ -105,7 +153,7 @@ const Items = () => {
     if (selectedCategories.length === 0) {
       setFilteredData(itemData);
     } else {
-      const filtered = itemData.filter((row) => 
+      const filtered = itemData.filter((row) =>
         selectedCategories.includes(String(row[currentFilterColumn]))
       );
       setFilteredData(filtered);
@@ -123,13 +171,13 @@ const Items = () => {
   };
 
   const getUniqueValues = (columnName) => {
-    return [...new Set(itemData.map((row) => String(row[columnName])))];
+    return [...new Set(itemData.map((row) => String(row[columnName] || "")))];
   };
 
   const getFilteredUniqueValues = (columnName) => {
     const uniqueValues = getUniqueValues(columnName);
     if (!categorySearchTerm) return uniqueValues;
-    return uniqueValues.filter((value) => 
+    return uniqueValues.filter((value) =>
       value.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
   };
@@ -165,10 +213,40 @@ const Items = () => {
     return pageNumbers;
   };
 
-
   // Handler for saving the item data
-  const handleSaveItem = (formData) => {
-      setItemFormOpen(false);
+  const handleSaveItem = async (formData) => {
+    // Here you would typically handle saving the new item to the database
+    // After saving, refetch the data to update the table
+    setItemFormOpen(false);
+
+    // Refetch items after adding a new one
+    setIsLoading(true);
+    try {
+      const response = await window.electron.getItem();
+      if (response.success) {
+        const itemsData = response.items || [];
+
+        const formattedItems = itemsData.map((item) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || "",
+          rate:
+            item.sellingPrice !== undefined ? parseFloat(item.sellingPrice) : 0,
+          unit: item.unit || "",
+        }));
+
+        setItemData(formattedItems);
+        setFilteredData(formattedItems);
+
+        if (formattedItems.length > 0) {
+          setColumns(Object.keys(formattedItems[0]));
+        }
+      }
+    } catch (error) {
+      console.error("Error refetching items:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -206,7 +284,8 @@ const Items = () => {
                   {columns.map((column) => (
                     <TableHead key={column}>
                       <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() + column.slice(1).toLowerCase()}
+                        {column.charAt(0).toUpperCase() +
+                          column.slice(1).toLowerCase()}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -226,7 +305,18 @@ const Items = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentData.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="text-center py-8"
+                    >
+                      <div className="flex justify-center">
+                        <Loader2 className="animate-spin h-6 w-6" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : currentData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="text-center">
                       No matching results found
@@ -234,10 +324,15 @@ const Items = () => {
                   </TableRow>
                 ) : (
                   currentData.map((row, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={row.id || index}>
                       {columns.map((column) => (
-                        <TableCell key={column} className="max-w-[200px] group relative">
-                          <div className="truncate">{row[column]}</div>
+                        <TableCell
+                          key={column}
+                          className="max-w-[200px] group relative"
+                        >
+                          <div className="truncate">
+                            {row[column] !== undefined ? row[column] : ""}
+                          </div>
                         </TableCell>
                       ))}
                     </TableRow>
@@ -248,14 +343,19 @@ const Items = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalPages > 1 && !isLoading && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      className={cn("cursor-pointer", currentPage === 1 && "pointer-events-none opacity-50")}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === 1 && "pointer-events-none opacity-50"
+                      )}
                     />
                   </PaginationItem>
                   {getPageNumbers().map((pageNumber, index) => (
@@ -275,8 +375,14 @@ const Items = () => {
                   ))}
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                      className={cn("cursor-pointer", currentPage === totalPages && "pointer-events-none opacity-50")}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === totalPages &&
+                          "pointer-events-none opacity-50"
+                      )}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -292,7 +398,9 @@ const Items = () => {
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
-              <p className="text-sm text-gray-600">Make changes to your filter here. Click save when you're done.</p>
+              <p className="text-sm text-gray-600">
+                Make changes to your filter here. Click save when you're done.
+              </p>
             </DialogHeader>
             <Input
               type="text"
@@ -303,7 +411,10 @@ const Items = () => {
             />
             <div className="max-h-60 overflow-y-auto space-y-[1px] mb-4">
               {getFilteredUniqueValues(currentFilterColumn).map((value) => (
-                <label key={value} className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer">
+                <label
+                  key={value}
+                  className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                >
                   <Checkbox
                     checked={selectedCategories.includes(value)}
                     onCheckedChange={() => handleCategorySelect(value)}
@@ -316,7 +427,11 @@ const Items = () => {
               <Button variant="ghost" onClick={handleSelectAll}>
                 Select All
               </Button>
-              <Button variant="default" className="bg-black hover:bg-gray-800" onClick={handleColumnFilter}>
+              <Button
+                variant="default"
+                className="bg-black hover:bg-gray-800"
+                onClick={handleColumnFilter}
+              >
                 Save changes
               </Button>
             </div>

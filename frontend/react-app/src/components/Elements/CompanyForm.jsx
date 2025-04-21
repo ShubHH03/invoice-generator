@@ -19,6 +19,47 @@ import {
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 
+const stateCityMapping = {
+  "andhra pradesh": ["Visakhapatnam", "Vijayawada", "Guntur"],
+  "arunachal pradesh": ["Itanagar", "Tawang", "Ziro"],
+  assam: ["Guwahati", "Silchar", "Dibrugarh"],
+  bihar: ["Patna", "Gaya", "Bhagalpur"],
+  chhattisgarh: ["Raipur", "Bhilai", "Bilaspur"],
+  goa: ["Panaji", "Margao", "Vasco da Gama"],
+  gujarat: ["Ahmedabad", "Surat", "Vadodara"],
+  haryana: ["Gurgaon", "Faridabad", "Panipat"],
+  "himachal pradesh": ["Shimla", "Manali", "Dharamshala"],
+  jharkhand: ["Ranchi", "Jamshedpur", "Dhanbad"],
+  karnataka: ["Bengaluru", "Mysuru", "Hubli"],
+  kerala: ["Thiruvananthapuram", "Kochi", "Kozhikode"],
+  "madhya pradesh": ["Bhopal", "Indore", "Gwalior"],
+  maharashtra: ["Mumbai", "Pune", "Nagpur"],
+  manipur: ["Imphal", "Thoubal", "Churachandpur"],
+  meghalaya: ["Shillong", "Tura", "Jowai"],
+  mizoram: ["Aizawl", "Lunglei", "Champhai"],
+  nagaland: ["Kohima", "Dimapur", "Mokokchung"],
+  odisha: ["Bhubaneswar", "Cuttack", "Rourkela"],
+  punjab: ["Ludhiana", "Amritsar", "Jalandhar"],
+  rajasthan: ["Jaipur", "Udaipur", "Jodhpur"],
+  sikkim: ["Gangtok", "Namchi", "Gyalshing"],
+  "tamil nadu": ["Chennai", "Coimbatore", "Madurai"],
+  telangana: ["Hyderabad", "Warangal", "Nizamabad"],
+  tripura: ["Agartala", "Dharmanagar", "Udaipur"],
+  "uttar pradesh": ["Lucknow", "Kanpur", "Varanasi"],
+  uttarakhand: ["Dehradun", "Haridwar", "Nainital"],
+  "west bengal": ["Kolkata", "Asansol", "Siliguri"],
+  delhi: ["New Delhi", "Dwarka", "Karol Bagh"],
+  "jammu and kashmir": ["Srinagar", "Jammu", "Leh"],
+  ladakh: ["Leh", "Kargil"],
+  puducherry: ["Puducherry", "Karaikal", "Yanam"],
+  chandigarh: ["Chandigarh"],
+  "andaman and nicobar islands": ["Port Blair"],
+  "dadra and nagar haveli and daman and diu": ["Daman", "Diu", "Silvassa"],
+  lakshadweep: ["Kavaratti"],
+};
+
+const indianStates = Object.keys(stateCityMapping);
+
 const CompanyForm = ({ open, onOpenChange, onSave }) => {
   const [formData, setFormData] = useState({
     companyType: "manufacturer",
@@ -40,6 +81,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
+      ...(field === "state" && { city: "" }), // reset city if state changes
     }));
   };
 
@@ -57,6 +99,8 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
       console.error("Failed to save item:", result.error);
     }
   };
+
+  const availableCities = stateCityMapping[formData.state] || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -224,9 +268,14 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                     <SelectValue placeholder="Select State" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="maharashtra">Maharashtra</SelectItem>
-                    <SelectItem value="delhi">Delhi</SelectItem>
-                    <SelectItem value="karnataka">Karnataka</SelectItem>
+                    {indianStates.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state
+                          .split(" ")
+                          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                          .join(" ")}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -241,9 +290,11 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                     <SelectValue placeholder="Select City" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mumbai">Mumbai</SelectItem>
-                    <SelectItem value="pune">Pune</SelectItem>
-                    <SelectItem value="nagpur">Nagpur</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

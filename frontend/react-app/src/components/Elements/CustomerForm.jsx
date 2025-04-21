@@ -9,7 +9,7 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Phone, Mail } from "lucide-react";
+import { Phone, Mail, Copy } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import {
   Select,
@@ -28,20 +28,123 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
     company: "",
     email: "",
     phone: "",
-    // Add other form fields as needed
+    // Billing address fields
+    billingCountry: "",
+    billingState: "",
+    billingCity: "",
+    billingAddress1: "",
+    billingAddress2: "",
+    billingPhone: "",
+    billingEmail: "",
+    alternatePhone: "",
+    // Shipping address fields
+    shippingCountry: "",
+    shippingState: "",
+    shippingCity: "",
+    shippingAddress1: "",
+    shippingAddress2: "",
+    shippingPhone: "",
+    shippingEmail: "",
+    shippingAlternatePhone: "",
+    // Other form fields
+    firstName: "",
+    lastName: "",
+    panNumber: "",
+    currency: "",
+    gstNumber: "",
+    stateCode: "",
   });
+
+  const stateCityMapping = {
+    "andhra pradesh": ["Visakhapatnam", "Vijayawada", "Guntur"],
+    "arunachal pradesh": ["Itanagar", "Tawang", "Ziro"],
+    assam: ["Guwahati", "Silchar", "Dibrugarh"],
+    bihar: ["Patna", "Gaya", "Bhagalpur"],
+    chhattisgarh: ["Raipur", "Bhilai", "Bilaspur"],
+    goa: ["Panaji", "Margao", "Vasco da Gama"],
+    gujarat: ["Ahmedabad", "Surat", "Vadodara"],
+    haryana: ["Gurgaon", "Faridabad", "Panipat"],
+    "himachal pradesh": ["Shimla", "Manali", "Dharamshala"],
+    jharkhand: ["Ranchi", "Jamshedpur", "Dhanbad"],
+    karnataka: ["Bengaluru", "Mysuru", "Hubli"],
+    kerala: ["Thiruvananthapuram", "Kochi", "Kozhikode"],
+    "madhya pradesh": ["Bhopal", "Indore", "Gwalior"],
+    maharashtra: ["Mumbai", "Pune", "Nagpur"],
+    manipur: ["Imphal", "Thoubal", "Churachandpur"],
+    meghalaya: ["Shillong", "Tura", "Jowai"],
+    mizoram: ["Aizawl", "Lunglei", "Champhai"],
+    nagaland: ["Kohima", "Dimapur", "Mokokchung"],
+    odisha: ["Bhubaneswar", "Cuttack", "Rourkela"],
+    punjab: ["Ludhiana", "Amritsar", "Jalandhar"],
+    rajasthan: ["Jaipur", "Udaipur", "Jodhpur"],
+    sikkim: ["Gangtok", "Namchi", "Gyalshing"],
+    "tamil nadu": ["Chennai", "Coimbatore", "Madurai"],
+    telangana: ["Hyderabad", "Warangal", "Nizamabad"],
+    tripura: ["Agartala", "Dharmanagar", "Udaipur"],
+    "uttar pradesh": ["Lucknow", "Kanpur", "Varanasi"],
+    uttarakhand: ["Dehradun", "Haridwar", "Nainital"],
+    "west bengal": ["Kolkata", "Asansol", "Siliguri"],
+    delhi: ["New Delhi", "Dwarka", "Karol Bagh"],
+    "jammu and kashmir": ["Srinagar", "Jammu", "Leh"],
+    ladakh: ["Leh", "Kargil"],
+    puducherry: ["Puducherry", "Karaikal", "Yanam"],
+    chandigarh: ["Chandigarh"],
+    "andaman and nicobar islands": ["Port Blair"],
+    "dadra and nagar haveli and daman and diu": ["Daman", "Diu", "Silvassa"],
+    lakshadweep: ["Kavaratti"],
+  };
+
+  const indianStates = Object.keys(stateCityMapping);
+
+  // Get available cities based on the selected state
+  const getBillingCities = () => stateCityMapping[formData.billingState] || [];
+  const getShippingCities = () =>
+    stateCityMapping[formData.shippingState] || [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
+    // Pass the form data to the parent component
+    if (onSave) {
+      onSave(formData);
+    }
+
     // Close the dialog
     onOpenChange(false);
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
+    }));
+
+    // Reset city when state changes
+    if (field === "billingState") {
+      setFormData((prev) => ({
+        ...prev,
+        billingCity: "",
+      }));
+    } else if (field === "shippingState") {
+      setFormData((prev) => ({
+        ...prev,
+        shippingCity: "",
+      }));
+    }
+  };
+
+  // Function to copy billing address to shipping address
+  const copyBillingToShipping = () => {
+    setFormData((prev) => ({
+      ...prev,
+      shippingCountry: prev.billingCountry,
+      shippingState: prev.billingState,
+      shippingCity: prev.billingCity,
+      shippingAddress1: prev.billingAddress1,
+      shippingAddress2: prev.billingAddress2,
+      shippingPhone: prev.billingPhone,
+      shippingEmail: prev.billingEmail,
+      shippingAlternatePhone: prev.alternatePhone,
     }));
   };
 
@@ -100,13 +203,19 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                     <SelectItem value="mrs">Mrs.</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input 
-                  placeholder="First Name" 
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                <Input
+                  placeholder="First Name"
+                  value={formData.firstName}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                 />
-                <Input 
+                <Input
                   placeholder="Last Name"
-                  onChange={(e) => handleInputChange("lastName", e.target.value)}
+                  value={formData.lastName}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -116,9 +225,10 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
               <div className="flex items-center space-x-1">
                 <Label className="text-sm font-medium">PAN No.</Label>
               </div>
-              <Input 
-                placeholder="Enter PAN Number" 
+              <Input
+                placeholder="Enter PAN Number"
                 className="w-full"
+                value={formData.panNumber}
                 onChange={(e) => handleInputChange("panNumber", e.target.value)}
               />
             </div>
@@ -128,8 +238,9 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
             {/* Company Name */}
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Company Name</Label>
-              <Input 
+              <Input
                 placeholder="Company Name"
+                value={formData.company}
                 onChange={(e) => handleInputChange("company", e.target.value)}
               />
             </div>
@@ -137,7 +248,10 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
             {/* Currency */}
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Currency</Label>
-              <Select onValueChange={(value) => handleInputChange("currency", value)}>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) => handleInputChange("currency", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Currency" />
                 </SelectTrigger>
@@ -156,14 +270,16 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
               type="radio"
               name="gstApplicable"
               value="yes"
-              onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              checked={gstApplicable === true}
+              onChange={() => setGstApplicable(true)}
             />{" "}
             Yes
             <input
               type="radio"
               name="gstApplicable"
               value="no"
-              onChange={(e) => setGstApplicable(e.target.value === "yes")}
+              checked={gstApplicable === false}
+              onChange={() => setGstApplicable(false)}
             />{" "}
             No
           </div>
@@ -172,17 +288,23 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">GSTIN/UIN</Label>
-                <Input 
+                <Input
                   placeholder="GST Number"
-                  onChange={(e) => handleInputChange("gstNumber", e.target.value)}
+                  value={formData.gstNumber}
+                  onChange={(e) =>
+                    handleInputChange("gstNumber", e.target.value)
+                  }
                 />
               </div>
 
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">State Code</Label>
-                <Input 
+                <Input
                   placeholder="State Code"
-                  onChange={(e) => handleInputChange("stateCode", e.target.value)}
+                  value={formData.stateCode}
+                  onChange={(e) =>
+                    handleInputChange("stateCode", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -203,7 +325,12 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                       <Label className="text-sm font-medium">
                         Country/Region
                       </Label>
-                      <Select onValueChange={(value) => handleInputChange("billingCountry", value)}>
+                      <Select
+                        value={formData.billingCountry}
+                        onValueChange={(value) =>
+                          handleInputChange("billingCountry", value)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Country" />
                         </SelectTrigger>
@@ -214,20 +341,55 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">State</Label>
-                      <Select onValueChange={(value) => handleInputChange("billingState", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select State" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="maharashtra">
-                            Maharashtra
-                          </SelectItem>
-                          <SelectItem value="delhi">Delhi</SelectItem>
-                          <SelectItem value="karnataka">Karnataka</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">State</Label>
+                        <Select
+                          value={formData.billingState}
+                          onValueChange={(value) =>
+                            handleInputChange("billingState", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select State" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {indianStates.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state
+                                  .split(" ")
+                                  .map(
+                                    (s) =>
+                                      s.charAt(0).toUpperCase() + s.slice(1)
+                                  )
+                                  .join(" ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">City</Label>
+                        <Select
+                          value={formData.billingCity}
+                          onValueChange={(value) =>
+                            handleInputChange("billingCity", value)
+                          }
+                          disabled={!formData.billingState}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select City" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getBillingCities().map((city) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
@@ -239,7 +401,10 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                       <Textarea
                         placeholder="Street Address, Building Name"
                         rows={2}
-                        onChange={(e) => handleInputChange("billingAddress1", e.target.value)}
+                        value={formData.billingAddress1}
+                        onChange={(e) =>
+                          handleInputChange("billingAddress1", e.target.value)
+                        }
                       />
                     </div>
 
@@ -247,29 +412,18 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                       <Label className="text-sm font-medium">
                         Address Line 2
                       </Label>
-                      <Textarea 
-                        placeholder="Locality, Area" 
+                      <Textarea
+                        placeholder="Locality, Area"
                         rows={2}
-                        onChange={(e) => handleInputChange("billingAddress2", e.target.value)}
+                        value={formData.billingAddress2}
+                        onChange={(e) =>
+                          handleInputChange("billingAddress2", e.target.value)
+                        }
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">City</Label>
-                      <Select onValueChange={(value) => handleInputChange("billingCity", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select City" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="mumbai">Mumbai</SelectItem>
-                          <SelectItem value="pune">Pune</SelectItem>
-                          <SelectItem value="nagpur">Nagpur</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center space-x-1">
                         <Label className="text-sm font-medium">
@@ -280,10 +434,13 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                           <Phone className="h-4 w-4" />
                         </div>
-                        <Input 
-                          className="pl-10 w-full" 
+                        <Input
+                          className="pl-10 w-full"
                           placeholder="Phone"
-                          onChange={(e) => handleInputChange("billingPhone", e.target.value)}
+                          value={formData.billingPhone}
+                          onChange={(e) =>
+                            handleInputChange("billingPhone", e.target.value)
+                          }
                         />
                       </div>
                     </div>
@@ -304,7 +461,10 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                         <Input
                           className="pl-10 w-full"
                           placeholder="Email Address"
-                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          value={formData.billingEmail}
+                          onChange={(e) =>
+                            handleInputChange("billingEmail", e.target.value)
+                          }
                         />
                       </div>
                     </div>
@@ -320,10 +480,13 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                           <Phone className="h-4 w-4" />
                         </div>
-                        <Input 
-                          className="pl-10 w-full" 
+                        <Input
+                          className="pl-10 w-full"
                           placeholder="Phone"
-                          onChange={(e) => handleInputChange("alternatePhone", e.target.value)}
+                          value={formData.alternatePhone}
+                          onChange={(e) =>
+                            handleInputChange("alternatePhone", e.target.value)
+                          }
                         />
                       </div>
                     </div>
@@ -332,15 +495,32 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
               </TabsContent>
 
               <TabsContent value="shipping" className="ml-2 mt-4">
-                {/* Similar structure to billing address with shipping-specific field names */}
+                {/* Same as Billing Address Button */}
+                <div className="mb-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={copyBillingToShipping}
+                    className="flex items-center space-x-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Same as Billing Address</span>
+                  </Button>
+                </div>
+
+                {/* Shipping Address Form Fields */}
                 <div className="flex flex-col space-y-3">
-                  {/* For brevity, I've only included state management for shipping fields */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col space-y-1">
                       <Label className="text-sm font-medium">
                         Country/Region
                       </Label>
-                      <Select onValueChange={(value) => handleInputChange("shippingCountry", value)}>
+                      <Select
+                        value={formData.shippingCountry}
+                        onValueChange={(value) =>
+                          handleInputChange("shippingCountry", value)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Country" />
                         </SelectTrigger>
@@ -351,25 +531,159 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex flex-col space-y-1">
-                      <Label className="text-sm font-medium">State</Label>
-                      <Select onValueChange={(value) => handleInputChange("shippingState", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select State" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="maharashtra">
-                            Maharashtra
-                          </SelectItem>
-                          <SelectItem value="delhi">Delhi</SelectItem>
-                          <SelectItem value="karnataka">Karnataka</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">State</Label>
+                        <Select
+                          value={formData.shippingState}
+                          onValueChange={(value) =>
+                            handleInputChange("shippingState", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select State" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {indianStates.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state
+                                  .split(" ")
+                                  .map(
+                                    (s) =>
+                                      s.charAt(0).toUpperCase() + s.slice(1)
+                                  )
+                                  .join(" ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1">
+                        <Label className="text-sm font-medium">City</Label>
+                        <Select
+                          value={formData.shippingCity}
+                          onValueChange={(value) =>
+                            handleInputChange("shippingCity", value)
+                          }
+                          disabled={!formData.shippingState}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select City" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getShippingCities().map((city) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Rest of shipping address form similar to billing */}
-                  {/* Additional fields would go here */}
+                  <div className="flex space-x-4">
+                    <div className="flex flex-col space-y-1 w-1/2">
+                      <Label className="text-sm font-medium">
+                        Address Line 1
+                      </Label>
+                      <Textarea
+                        placeholder="Street Address, Building Name"
+                        rows={2}
+                        value={formData.shippingAddress1}
+                        onChange={(e) =>
+                          handleInputChange("shippingAddress1", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex flex-col space-y-1 w-1/2">
+                      <Label className="text-sm font-medium">
+                        Address Line 2
+                      </Label>
+                      <Textarea
+                        placeholder="Locality, Area"
+                        rows={2}
+                        value={formData.shippingAddress2}
+                        onChange={(e) =>
+                          handleInputChange("shippingAddress2", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center space-x-1">
+                        <Label className="text-sm font-medium">
+                          Contact No.
+                        </Label>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <Input
+                          className="pl-10 w-full"
+                          placeholder="Phone"
+                          value={formData.shippingPhone}
+                          onChange={(e) =>
+                            handleInputChange("shippingPhone", e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-4">
+                    {/* Email Address */}
+                    <div className="flex flex-col space-y-1 w-1/2">
+                      <div className="flex items-center space-x-1">
+                        <Label className="text-sm font-medium">
+                          Email Address
+                        </Label>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <Input
+                          className="pl-10 w-full"
+                          placeholder="Email Address"
+                          value={formData.shippingEmail}
+                          onChange={(e) =>
+                            handleInputChange("shippingEmail", e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Alternate Phone Number */}
+                    <div className="flex flex-col space-y-1 w-1/2">
+                      <div className="flex items-center space-x-1">
+                        <Label className="text-sm font-medium">
+                          Alternate Contact No.
+                        </Label>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <Input
+                          className="pl-10 w-full"
+                          placeholder="Phone"
+                          value={formData.shippingAlternatePhone}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "shippingAlternatePhone",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

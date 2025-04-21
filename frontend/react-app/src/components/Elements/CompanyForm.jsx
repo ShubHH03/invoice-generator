@@ -20,12 +20,11 @@ import {
 import { Textarea } from "../ui/textarea";
 
 const CompanyForm = ({ open, onOpenChange, onSave }) => {
-  const [companyType, setCompanyType] = useState("manufacturer");
-  const [gstApplicable, setGstApplicable] = useState(false);
   const [formData, setFormData] = useState({
+    companyType: "manufacturer",
     companyName: "",
-    currency: "INR",
-    invoiceDueDays: "30",
+    currency: "inr",
+    gstApplicable: false,
     gstin: "",
     stateCode: "",
     country: "",
@@ -34,7 +33,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     state: "",
     city: "",
     email: "",
-    phone: "",
+    contactNo: "",
   });
 
   const handleInputChange = (field, value) => {
@@ -44,13 +43,19 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     }));
   };
 
-  const handleSubmit = () => {
-    onSave({
-      ...formData,
-      companyType,
-      gstApplicable,
-    });
-    onOpenChange(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    console.log("Form data:", formData);
+
+    const result = await window.electron.addCompany(formData);
+    if (result.success) {
+      console.log("Company saved:", result.result);
+      if (onSave) onSave(result.result);
+      onOpenChange(false);
+    } else {
+      console.error("Failed to save item:", result.error);
+    }
   };
 
   return (
@@ -69,8 +74,8 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   type="radio"
                   name="companyType"
                   value="manufacturer"
-                  checked={companyType === "manufacturer"}
-                  onChange={() => setCompanyType("manufacturer")}
+                  checked={formData.companyType === "manufacturer"}
+                  onChange={() => handleInputChange("companyType", "manufacturer")}
                 />
                 <span>Manufacturer</span>
               </label>
@@ -79,8 +84,8 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   type="radio"
                   name="companyType"
                   value="trader"
-                  checked={companyType === "trader"}
-                  onChange={() => setCompanyType("trader")}
+                  checked={formData.companyType === "trader"}
+                  onChange={() => handleInputChange("companyType", "trader")}
                 />
                 <span>Trader</span>
               </label>
@@ -89,8 +94,8 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   type="radio"
                   name="companyType"
                   value="services"
-                  checked={companyType === "services"}
-                  onChange={() => setCompanyType("services")}
+                  checked={formData.companyType === "services"}
+                  onChange={() => handleInputChange("companyType", "services")}
                 />
                 <span>Services</span>
               </label>
@@ -99,23 +104,29 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
           <div className="flex space-x-4">
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Company Name</Label>
-              <Input 
-                placeholder="Company Name" 
+              <Input
+                placeholder="Company Name"
                 value={formData.companyName}
-                onChange={(e) => handleInputChange("companyName", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("companyName", e.target.value)
+                }
               />
             </div>
 
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Currency</Label>
-              <Select 
-                disabled 
-                value={formData.currency} 
+              <Select
+                value={formData.currency}
                 onValueChange={(value) => handleInputChange("currency", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="INR - Indian Rupee" />
+                  <SelectValue placeholder="Select Currency" />
                 </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inr">INR - Indian Rupee</SelectItem>
+                  <SelectItem value="usd">USD - US Dollar</SelectItem>
+                  <SelectItem value="eur">EUR - Euro</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -126,21 +137,21 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               type="radio"
               name="gstApplicable"
               value="yes"
-              checked={gstApplicable === true}
-              onChange={() => setGstApplicable(true)}
+              checked={formData.gstApplicable === true}
+              onChange={() => handleInputChange("gstApplicable", true)}
             />{" "}
             Yes
             <input
               type="radio"
               name="gstApplicable"
               value="no"
-              checked={gstApplicable === false}
-              onChange={() => setGstApplicable(false)}
+              checked={formData.gstApplicable === false}
+              onChange={() => handleInputChange("gstApplicable", false)}
             />{" "}
             No
           </div>
 
-          {gstApplicable && (
+          {formData.gstApplicable && (
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">GSTIN/UIN</Label>
@@ -264,11 +275,11 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <Phone className="h-4 w-4" />
                   </div>
-                  <Input 
-                    className="pl-10 w-full" 
-                    placeholder="Phone" 
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                  <Input
+                    className="pl-10 w-full"
+                    placeholder="Phone"
+                    value={formData.contactNo}
+                    onChange={(e) => handleInputChange("contactNo", e.target.value)}
                   />
                 </div>
               </div>

@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const { registerItemDashboardIpc } = require("./ipc/itemDashboard");
+const {registerCompanyDashboardIpc} = require("./ipc/companyDashboard");
 
 // Create logs directory
 const logDir = path.join(app.getPath("userData"), "logs");
@@ -83,6 +84,7 @@ function createWindow() {
 
   console.log("Registering IPC handlers...");
   registerItemDashboardIpc();
+  registerCompanyDashboardIpc();
   console.log("IPC handlers registered");
 }
 

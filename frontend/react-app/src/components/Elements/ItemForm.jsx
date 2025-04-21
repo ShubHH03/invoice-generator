@@ -29,7 +29,7 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
 
     const result = await window.electron.addItems(formData);
     if (result.success) {
-      console.log("Item saved:", result.result);
+      console.log("Item saved:", result);
       onOpenChange(false);
     } else {
       console.error("Failed to save item:", result.error);
@@ -42,7 +42,7 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
         <DialogHeader>
           <DialogTitle>Create New Item</DialogTitle>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4">
           {/* Item Type */}
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
@@ -144,7 +144,7 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
             >
               Cancel
             </Button>
-            <Button variant="default" type="submit">
+            <Button variant="default" type="submit" onClick={handleSubmit}>
               Save
             </Button>
           </DialogFooter>

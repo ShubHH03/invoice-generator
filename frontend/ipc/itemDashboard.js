@@ -13,7 +13,7 @@ function registerItemDashboardIpc() {
       try {
         console.log("Received add-items request with data:", data);
         const result = await db.insert(items).values({
-          type: data.itemType || null,
+          type: data.itemType || "Goods",
           name: data.name,
           unit: data.unit || null,
           sellingPrice: parseFloat(data.price || 0),

@@ -8,20 +8,19 @@ function registerCompanyDashboardIpc() {
     const db = dbManager.getDatabase();
     console.log("Database instance initialized:", !!db);
 
-    // Register the IPC handler
+    // Register the IPC handler to add a company
     ipcMain.handle("add-company", async (event, data) => {
       try {
         console.log("Received add-company request with data:", data);
-        
-        // Validate GST applicable and provide default values
-        const gstin = data.gstApplicable == true? data.gstin : null;
-        const stateCode = data.gstApplicable == true? data.stateCode : null;
+
+        const gstin = data.gstApplicable === true ? data.gstin : null;
+        const stateCode = data.gstApplicable === true ? data.stateCode : null;
 
         const result = await db.insert(companies).values({
-          companyType: data.companyType || "Manufacturer", // Default to 'Services' if not provided
+          companyType: data.companyType || "Manufacturer",
           companyName: data.companyName,
-          currency: data.currency || "INR", // Default to INR if currency is not provided
-          gstApplicable: data.gstApplicable == true? "Yes" : "No", // Default to 'No' if not provided
+          currency: data.currency || "INR",
+          gstApplicable: data.gstApplicable === true ? "Yes" : "No",
           gstin,
           stateCode,
           country: data.country,
@@ -40,6 +39,20 @@ function registerCompanyDashboardIpc() {
       }
     });
     console.log("IPC handler 'add-company' registered successfully");
+
+    // Register the IPC handler to get all companies
+    ipcMain.handle("get-company", async (event) => {
+      try {
+        console.log("Received get-company request");
+        const result = await db.select().from(companies);
+        console.log(`Retrieved ${result.length} companies from database`);
+        return { success: true, companies: result };
+      } catch (err) {
+        console.error("Get company error:", err);
+        return { success: false, error: err.message };
+      }
+    });
+    console.log("IPC handler 'get-company' registered successfully");
   } catch (err) {
     console.error("Failed to initialize company dashboard IPC:", err);
   }

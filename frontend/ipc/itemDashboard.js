@@ -8,7 +8,7 @@ function registerItemDashboardIpc() {
     const db = dbManager.getDatabase();
     console.log("Database instance initialized:", !!db);
 
-    // Register the IPC handler
+    // Register the IPC handler for adding items
     ipcMain.handle("add-items", async (event, data) => {
       try {
         console.log("Received add-items request with data:", data);
@@ -27,8 +27,22 @@ function registerItemDashboardIpc() {
       }
     });
     console.log("IPC handler 'add-items' registered successfully");
+
+    // Register the IPC handler for retrieving items
+    ipcMain.handle("get-Item", async (event) => {
+      try {
+        console.log("Received get-item request");
+        const result = await db.select().from(items);
+        console.log(`Retrieved ${result.length} items from db`);
+        return { success: true, items: result };
+      } catch (err) {
+        console.error("Get Item error:", err);
+        return { success: false, error: err.message };
+      }
+    });
+    console.log("IPC handler 'get-Item' registered successfully");
   } catch (err) {
-    console.error("Failed to initialize mainDashboardIpc:", err);
+    console.error("Failed to initialize item dashboard IPC:", err);
   }
 }
 

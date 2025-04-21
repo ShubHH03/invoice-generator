@@ -1,6 +1,6 @@
 const { ipcMain } = require("electron");
 const DatabaseManager = require("../db/db");
-const { companies } = require("../db/schema/Company"); // Importing the companies schema
+const { companies } = require("../db/schema/Company");
 
 function registerCompanyDashboardIpc() {
   try {

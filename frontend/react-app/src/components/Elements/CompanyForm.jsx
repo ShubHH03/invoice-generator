@@ -311,6 +311,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   </div>
                   <Input
                     className="pl-10 w-full"
+
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}

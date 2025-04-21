@@ -23,6 +23,9 @@ const customers = sqliteTable("customers", {
   billingCity: text("billing_city").notNull(),
   billingAddressLine1: text("billing_address_line_1").notNull(),
   billingAddressLine2: text("billing_address_line_2"),
+  billingContactNo: text("billing_contact_no").notNull(),
+  billingEmail: text("billing_email").notNull(),
+  billingAlternateContactNo: text("billing_alternate_contact_no"),
 
   // Shipping Address
   shippingCountry: text("shipping_country").notNull(),
@@ -30,10 +33,9 @@ const customers = sqliteTable("customers", {
   shippingCity: text("shipping_city").notNull(),
   shippingAddressLine1: text("shipping_address_line_1").notNull(),
   shippingAddressLine2: text("shipping_address_line_2"),
-
-  contactNo: text("contact_no").notNull(), 
-  alternateContactNo: text("alternate_contact_no"),
-  email: text("email").notNull(),
+  shippingContactNo: text("shipping_contact_no").notNull(),
+  shippingEmail: text("shipping_email").notNull(),
+  shippingAlternateContactNo: text("shipping_alternate_contact_no"),
 });
 
 module.exports = { customers };

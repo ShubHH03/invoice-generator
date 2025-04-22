@@ -4,12 +4,22 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const { registerItemDashboardIpc } = require("./ipc/itemDashboard");
-const {registerCompanyDashboardIpc} = require("./ipc/companyDashboard");
+const { registerCompanyDashboardIpc } = require("./ipc/companyDashboard");
 const { registerCustomerDashboardIpc } = require("./ipc/customerDashboard");
+
 // Create logs directory
 const logDir = path.join(app.getPath("userData"), "logs");
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
+}
+
+// Create tmp directory for storing images
+const tmpDir = path.join(__dirname, "tmp");
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+  console.log(`Created tmp directory at: ${tmpDir}`);
+} else {
+  console.log(`Tmp directory already exists at: ${tmpDir}`);
 }
 
 // Create log file stream
@@ -107,3 +117,6 @@ app.on("activate", () => {
     createWindow();
   }
 });
+
+// Export the tmp directory path for use in other files
+module.exports = { tmpDir };

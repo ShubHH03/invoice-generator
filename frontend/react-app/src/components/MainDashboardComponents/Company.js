@@ -44,44 +44,13 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import CompanyForm from "../Elements/CompanyForm"; // Import the CompanyForm component
-
-const customerData = [
-  {
-    name: "John Doe",
-    companyName: "ABC Corp",
-    email: "john@abccorp.com",
-    phone: "+1-234-567-8901",
-  },
-  {
-    name: "Jane Smith",
-    companyName: "XYZ Industries",
-    email: "jane@xyz.com",
-    phone: "+1-234-567-8902",
-  },
-  {
-    name: "Mike Johnson",
-    companyName: "Tech Solutions",
-    email: "mike@techsol.com",
-    phone: "+1-234-567-8903",
-  },
-  {
-    name: "Sarah Wilson",
-    companyName: "Global Services",
-    email: "sarah@global.com",
-    phone: "+1-234-567-8904",
-  },
-  {
-    name: "David Brown",
-    companyName: "Innovation Ltd",
-    email: "david@innovation.com",
-    phone: "+1-234-567-8905",
-  },
-];
+import CompanyForm from "../Elements/CompanyForm";
+import { Loader2 } from "lucide-react";
 
 const Company = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredData, setFilteredData] = useState(customerData);
+  const [filteredData, setFilteredData] = useState([]);
+  const [companyData, setCompanyData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
@@ -89,34 +58,84 @@ const Company = () => {
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [companyFormOpen, setCompanyFormOpen] = useState(false);
+  const [columns, setColumns] = useState([]);
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = customerData.length > 0 ? Object.keys(customerData[0]) : [];
+  // Display field mappings
+  const fieldMappings = {
+    companyName: "Company Name",
+    companyType: "Company Type",
+    email: "Email",
+    contactNo: "Contact No",
+    gstApplicable: "GST Applicable",
+    gstin: "GSTIN",
+  };
 
-  // Determine which columns are numeric
-  const numericColumns = columns.filter((column) =>
-    customerData.some((row) => {
-      const value = String(row[column]);
-      return !isNaN(Number.parseFloat(value)) && !value.includes("-");
-    })
-  );
+  // Column order (specify which fields to display and in what order)
+  const columnOrder = [
+    "companyName",
+    "companyType",
+    "email",
+    "contactNo",
+    "gstApplicable",
+    "gstin",
+  ];
 
   useEffect(() => {
-    setFilteredData(customerData);
+    const fetchCompanies = async () => {
+      setIsLoading(true);
+      try {
+        // Using the electron API from preload.js to get companies
+        const response = await window.electron.getCompany();
+        console.log("Companies API response:", response);
+
+        if (response.success) {
+          const companiesData = response.companies || [];
+          console.log("Companies data:", companiesData);
+
+          // Format companies if needed
+          const formattedCompanies = companiesData.map((company) => ({
+            id: company.id,
+            companyName: company.companyName || "",
+            companyType: company.companyType || "",
+            email: company.email || "",
+            contactNo: company.contactNo || "",
+            gstApplicable: company.gstApplicable || "No",
+            gstin: company.gstin || "N/A",
+          }));
+
+          // Set the data
+          setCompanyData(formattedCompanies);
+          setFilteredData(formattedCompanies);
+
+          // Set columns based on our predefined order
+          setColumns(columnOrder);
+        } else {
+          console.error("Failed to fetch companies:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanies();
   }, []);
 
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
     if (searchValue === "") {
-      setFilteredData(customerData);
+      setFilteredData(companyData);
       setCurrentPage(1);
       return;
     }
 
-    const filtered = customerData.filter((row) =>
-      Object.entries(row).some(([key, value]) =>
-        String(value).toLowerCase().includes(searchValue.toLowerCase())
+    const filtered = companyData.filter((row) =>
+      Object.entries(row).some(
+        ([key, value]) =>
+          value !== null &&
+          String(value).toLowerCase().includes(searchValue.toLowerCase())
       )
     );
 
@@ -142,11 +161,12 @@ const Company = () => {
 
   const handleColumnFilter = () => {
     if (selectedCategories.length === 0) {
-      setFilteredData(customerData);
+      setFilteredData(companyData);
     } else {
-      const filtered = customerData.filter((row) =>
-        selectedCategories.includes(String(row[currentFilterColumn]))
-      );
+      const filtered = companyData.filter((row) => {
+        const value = row[currentFilterColumn];
+        return value !== null && selectedCategories.includes(String(value));
+      });
       setFilteredData(filtered);
     }
     setCurrentPage(1);
@@ -155,14 +175,22 @@ const Company = () => {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setFilteredData(customerData);
+    setFilteredData(companyData);
     setCurrentPage(1);
     setSelectedCategories([]);
     setCategorySearchTerm("");
   };
 
   const getUniqueValues = (columnName) => {
-    return [...new Set(customerData.map((row) => String(row[columnName])))];
+    return [
+      ...new Set(
+        companyData
+          .map((row) =>
+            row[columnName] !== null ? String(row[columnName]) : "N/A"
+          )
+          .filter(Boolean)
+      ),
+    ];
   };
 
   const getFilteredUniqueValues = (columnName) => {
@@ -173,21 +201,23 @@ const Company = () => {
     );
   };
 
-    // Add a new function to handle form submission
-  const handleSaveCompany = (companyData) => {
-    // Here you can handle saving the company data
-    console.log("Saving company:", companyData);
-    
-    // You might want to add the new company to your list
-    // and update the filtered data as well
-    // This is just an example:
-    // const newCompany = {
-    //   name: companyData.companyName,
-    //   companyName: companyData.companyName,
-    //   email: companyData.email,
-    //   phone: companyData.phone
-    // };
-    // setFilteredData([...filteredData, newCompany]);
+  const handleSaveCompany = async (companyData) => {
+    try {
+      // You would typically call an API to save the company
+      // For example: const result = await window.electron.addCompany(companyData);
+
+      // Refresh the companies list after adding
+      const response = await window.electron.getCompany();
+      if (response.success) {
+        setCompanyData(response.companies || []);
+        setFilteredData(response.companies || []);
+      }
+
+      // Close the form
+      setCompanyFormOpen(false);
+    } catch (error) {
+      console.error("Error saving company:", error);
+    }
   };
 
   // Pagination calculations
@@ -227,7 +257,7 @@ const Company = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="space-y-2">
-              <CardTitle>Recent Companies</CardTitle>
+              <CardTitle>Companies</CardTitle>
               <CardDescription>View and manage your companies</CardDescription>
             </div>
             <div className="relative flex items-center gap-2">
@@ -242,10 +272,10 @@ const Company = () => {
                 variant="default"
                 onClick={() => setCompanyFormOpen(true)}
               >
-                <Plus className="h-5 w-5" />
-                New
+                <Plus className="h-5 w-5 mr-2" />
+                New Company
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>
@@ -253,59 +283,77 @@ const Company = () => {
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={column}>
-                      <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() +
-                          column.slice(1).toLowerCase()}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setCurrentFilterColumn(column);
-                            setSelectedCategories([]);
-                            setCategorySearchTerm("");
-                            setFilterModalOpen(true);
-                          }}
-                        >
-                          ▼
-                        </Button>
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentData.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading companies...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center">
-                      No matching results found
-                    </TableCell>
+                    {columns.map((column) => (
+                      <TableHead key={column}>
+                        <div className="flex items-center gap-2">
+                          {fieldMappings[column] || column}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setCurrentFilterColumn(column);
+                              setSelectedCategories([]);
+                              setCategorySearchTerm("");
+                              setFilterModalOpen(true);
+                            }}
+                          >
+                            ▼
+                          </Button>
+                        </div>
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ) : (
-                  currentData.map((row, index) => (
-                    <TableRow key={index}>
-                      {columns.map((column) => (
-                        <TableCell
-                          key={column}
-                          className="max-w-[200px] group relative"
-                        >
-                          <div className="truncate">{row[column]}</div>
-                        </TableCell>
-                      ))}
+                </TableHeader>
+                <TableBody>
+                  {currentData.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-center py-10"
+                      >
+                        No companies found
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    currentData.map((row, index) => (
+                      <TableRow
+                        key={row.id || index}
+                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        {columns.map((column) => (
+                          <TableCell
+                            key={column}
+                            className="max-w-[200px] group relative"
+                          >
+                            <div className="truncate">
+                              {column === "gstApplicable"
+                                ? row[column] === "Yes"
+                                  ? "Yes"
+                                  : "No"
+                                : row[column] || "N/A"}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {!isLoading && totalPages > 1 && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
@@ -359,9 +407,13 @@ const Company = () => {
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
+              <DialogTitle>
+                Filter{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}
+              </DialogTitle>
               <p className="text-sm text-gray-600">
-                Make changes to your filter here. Click save when you're done.
+                Select values to filter by{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}.
               </p>
             </DialogHeader>
             <Input
@@ -387,14 +439,14 @@ const Company = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={handleSelectAll}>
-                Select All
+                {getFilteredUniqueValues(currentFilterColumn).every((cat) =>
+                  selectedCategories.includes(cat)
+                )
+                  ? "Deselect All"
+                  : "Select All"}
               </Button>
-              <Button
-                variant="default"
-                className="bg-black hover:bg-gray-800"
-                onClick={handleColumnFilter}
-              >
-                Save changes
+              <Button variant="default" onClick={handleColumnFilter}>
+                Apply Filter
               </Button>
             </div>
           </DialogContent>
@@ -402,7 +454,7 @@ const Company = () => {
       )}
 
       {/* Company Form Dialog */}
-      <CompanyForm 
+      <CompanyForm
         open={companyFormOpen}
         onOpenChange={setCompanyFormOpen}
         onSave={handleSaveCompany}

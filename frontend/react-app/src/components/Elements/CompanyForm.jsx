@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Phone } from "lucide-react";
 import {
   Dialog,
@@ -75,29 +75,76 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     city: "",
     email: "",
     contactNo: "",
+    logo: null,
+    signature: null,
   });
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-      ...(field === "state" && { city: "" }), // reset city if state changes
+      ...(field === "state" && { city: "" }),
+    }));
+  };
+
+  const handleFileChange = (field, file) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: file,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Form data:", formData);
+    try {
+      // Create a copy of formData to modify
+      const dataToSend = { ...formData };
 
-    const result = await window.electron.addCompany(formData);
-    if (result.success) {
-      console.log("Company saved:", result.result);
-      if (onSave) onSave(result.result);
-      onOpenChange(false);
-    } else {
-      console.error("Failed to save item:", result.error);
+      // Convert logo file to base64 if it exists
+      if (formData.logo) {
+        const logoBase64 = await fileToBase64(formData.logo);
+        dataToSend.logo = logoBase64;
+      }
+
+      // Convert signature file to base64 if it exists
+      if (formData.signature) {
+        const signatureBase64 = await fileToBase64(formData.signature);
+        dataToSend.signature = signatureBase64;
+      }
+
+      // Remove the original file objects
+      delete dataToSend.logoPath;
+      delete dataToSend.signaturePath;
+
+      console.log("Sending form data:", {
+        ...dataToSend,
+        logo: dataToSend.logo ? "[LOGO DATA BASE64]" : null,
+        signature: dataToSend.signature ? "[SIGNATURE DATA BASE64]" : null,
+      });
+
+      const result = await window.electron.addCompany(dataToSend);
+
+      if (result.success) {
+        console.log("Company saved:", result.result);
+        if (onSave) onSave(result.result);
+        onOpenChange(false);
+      } else {
+        console.error("Failed to save item:", result.error);
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
     }
+  };
+
+  // Helper function to convert File to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const availableCities = stateCityMapping[formData.state] || [];
@@ -119,7 +166,9 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   name="companyType"
                   value="manufacturer"
                   checked={formData.companyType === "manufacturer"}
-                  onChange={() => handleInputChange("companyType", "manufacturer")}
+                  onChange={() =>
+                    handleInputChange("companyType", "manufacturer")
+                  }
                 />
                 <span>Manufacturer</span>
               </label>
@@ -156,7 +205,14 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                 }
               />
             </div>
-
+            <div className="flex flex-col space-y-1 w-1/2">
+              <Label className="text-sm font-medium">Company Logo</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange("logo", e.target.files[0])}
+              />
+            </div>
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Currency</Label>
               <Select
@@ -199,8 +255,8 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">GSTIN/UIN</Label>
-                <Input 
-                  placeholder="GST Number" 
+                <Input
+                  placeholder="GST Number"
                   value={formData.gstin}
                   onChange={(e) => handleInputChange("gstin", e.target.value)}
                 />
@@ -208,10 +264,12 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">State Code</Label>
-                <Input 
-                  placeholder="State Code" 
+                <Input
+                  placeholder="State Code"
                   value={formData.stateCode}
-                  onChange={(e) => handleInputChange("stateCode", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("stateCode", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -220,7 +278,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
           <div className="flex flex-col space-y-3">
             <div className="flex flex-col space-y-1">
               <Label className="text-sm font-medium">Country/Region</Label>
-              <Select 
+              <Select
                 value={formData.country}
                 onValueChange={(value) => handleInputChange("country", value)}
               >
@@ -242,17 +300,21 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   placeholder="Street Address, Building Name"
                   rows={2}
                   value={formData.addressLine1}
-                  onChange={(e) => handleInputChange("addressLine1", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("addressLine1", e.target.value)
+                  }
                 />
               </div>
 
               <div className="flex flex-col space-y-1 w-1/2">
                 <Label className="text-sm font-medium">Address Line 2</Label>
-                <Textarea 
-                  placeholder="Locality, Area" 
+                <Textarea
+                  placeholder="Locality, Area"
                   rows={2}
                   value={formData.addressLine2}
-                  onChange={(e) => handleInputChange("addressLine2", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("addressLine2", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -260,7 +322,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">State</Label>
-                <Select 
+                <Select
                   value={formData.state}
                   onValueChange={(value) => handleInputChange("state", value)}
                 >
@@ -282,7 +344,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">City</Label>
-                <Select 
+                <Select
                   value={formData.city}
                   onValueChange={(value) => handleInputChange("city", value)}
                 >
@@ -311,7 +373,6 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   </div>
                   <Input
                     className="pl-10 w-full"
-
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
@@ -331,9 +392,23 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                     className="pl-10 w-full"
                     placeholder="Phone"
                     value={formData.contactNo}
-                    onChange={(e) => handleInputChange("contactNo", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("contactNo", e.target.value)
+                    }
                   />
                 </div>
+              </div>
+              <div className="flex flex-col space-y-1 w-1/2">
+                <Label className="text-sm font-medium">
+                  Authorized Signature
+                </Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    handleFileChange("signature", e.target.files[0])
+                  }
+                />
               </div>
             </div>
           </div>
@@ -351,4 +426,4 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
   );
 };
 
-  export default CompanyForm;
+export default CompanyForm;

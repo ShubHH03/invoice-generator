@@ -1,10 +1,5 @@
 // src/db/schema.js
-const {
-  sqliteTable,
-  text,
-  integer,
-  real
-} = require("drizzle-orm/sqlite-core");
+const { sqliteTable, text, integer, real } = require("drizzle-orm/sqlite-core");
 const { companies } = require("../schema/Company");
 const { customers } = require("../schema/Customer");
 

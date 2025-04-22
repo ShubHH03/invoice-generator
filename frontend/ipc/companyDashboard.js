@@ -142,7 +142,68 @@ function registerCompanyDashboardIpc() {
         console.log("Received get-company request");
         const result = await db.select().from(companies);
         console.log(`Retrieved ${result.length} companies from database`);
-        return { success: true, companies: result };
+
+        // Process each company to add base64 encoded logo/signature
+        const companiesWithImages = await Promise.all(
+          result.map(async (company) => {
+            // Create a copy of the company object
+            const enhancedCompany = { ...company };
+
+            // Add base64 encoded logo if logo path exists
+            if (company.logoPath && fs.existsSync(company.logoPath)) {
+              try {
+                const logoBuffer = fs.readFileSync(company.logoPath);
+                const ext = path
+                  .extname(company.logoPath)
+                  .toLowerCase()
+                  .substring(1);
+                let mimeType =
+                  ext === "png"
+                    ? "image/png"
+                    : ext === "svg"
+                    ? "image/svg+xml"
+                    : ext === "gif"
+                    ? "image/gif"
+                    : "image/jpeg";
+
+                enhancedCompany.logo = `data:${mimeType};base64,${logoBuffer.toString(
+                  "base64"
+                )}`;
+              } catch (e) {
+                console.error("Error loading logo:", e);
+              }
+            }
+
+            // Add base64 encoded signature if signature path exists
+            if (company.signaturePath && fs.existsSync(company.signaturePath)) {
+              try {
+                const sigBuffer = fs.readFileSync(company.signaturePath);
+                const ext = path
+                  .extname(company.signaturePath)
+                  .toLowerCase()
+                  .substring(1);
+                let mimeType =
+                  ext === "png"
+                    ? "image/png"
+                    : ext === "svg"
+                    ? "image/svg+xml"
+                    : ext === "gif"
+                    ? "image/gif"
+                    : "image/jpeg";
+
+                enhancedCompany.signature = `data:${mimeType};base64,${sigBuffer.toString(
+                  "base64"
+                )}`;
+              } catch (e) {
+                console.error("Error loading signature:", e);
+              }
+            }
+
+            return enhancedCompany;
+          })
+        );
+
+        return { success: true, companies: companiesWithImages };
       } catch (err) {
         console.error("Get company error:", err);
         return { success: false, error: err.message };

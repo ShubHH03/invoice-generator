@@ -1,0 +1,302 @@
+// src/main/ipc/invoiceIpc.js
+
+const { ipcMain } = require("electron");
+const DatabaseManager = require("../db/db");
+const { invoices } = require("../db/schema/Invoice");
+const { invoiceItems } = require("../db/schema/InvoiceItems"); // Assuming you have a schema for invoice items
+const dbManager = DatabaseManager.getInstance();
+const db = dbManager.getDatabase();
+console.log("Database instance initialized:", !!db);
+function registerInvoiceGeneratorIpc() {
+  // Create a new invoice
+  ipcMain.handle("add-invoice", async (event, invoiceData) => {
+    try {
+      console.log("Creating new invoice with data:", invoiceData);
+
+      // Validate required fields
+      if (
+        !invoiceData.companyId ||
+        !invoiceData.customerId ||
+        !invoiceData.invoiceNumber
+      ) {
+        return {
+          success: false,
+          error:
+            "Missing required fields: companyId, customerId, or invoiceNumber",
+        };
+      }
+
+      // Convert dates to ISO strings for SQLite storage
+      const invoiceDateISO =
+        invoiceData.invoiceDate instanceof Date
+          ? invoiceData.invoiceDate.toISOString()
+          : new Date(invoiceData.invoiceDate).toISOString();
+
+      const dueDateISO =
+        invoiceData.dueDate instanceof Date
+          ? invoiceData.dueDate.toISOString()
+          : new Date(invoiceData.dueDate).toISOString();
+
+      // Calculate tax amounts if not provided
+      const subtotal = parseFloat(invoiceData.subtotal) || 0;
+      const cgstRate = invoiceData.cgstRate || 9; // Default 9%
+      const sgstRate = invoiceData.sgstRate || 9; // Default 9%
+      const cgstAmount = subtotal * (cgstRate / 100);
+      const sgstAmount = subtotal * (sgstRate / 100);
+      const totalAmount = subtotal + cgstAmount + sgstAmount;
+
+      // Start a transaction to ensure both invoice and items are saved together
+      return await db.transaction(async (tx) => {
+        // Create the invoice record in the database
+        const insertedInvoice = await tx
+          .insert(invoices)
+          .values({
+            companyId: invoiceData.companyId,
+            customerId: invoiceData.customerId,
+            invoiceNo: invoiceData.invoiceNumber,
+            invoiceDate: invoiceDateISO,
+            dueDate: dueDateISO,
+            terms: invoiceData.paymentTerms || "0",
+            ledger: invoiceData.incomeLedger || "",
+            cgstRate: cgstRate,
+            sgstRate: sgstRate,
+            subtotal: subtotal,
+            cgstAmount: cgstAmount,
+            sgstAmount: sgstAmount,
+            totalAmount: totalAmount,
+            narration: invoiceData.customerNotes || "",
+            termsAndConditions: invoiceData.termsAndConditions || "",
+            status: invoiceData.status || "sent",
+          })
+          .returning();
+
+        const invoiceId = insertedInvoice[0].id;
+
+        // Process invoice items if they exist
+        if (
+          invoiceData.items &&
+          Array.isArray(invoiceData.items) &&
+          invoiceData.items.length > 0
+        ) {
+          // Transform items to match the database schema
+          const itemsToInsert = invoiceData.items.map((item) => ({
+            invoiceId: invoiceId,
+            itemId: item.id || 0, // If new item, use 0 or null as appropriate
+            itemDetails: item.description || "",
+            quantity: parseFloat(item.quantity) || 0,
+            rate: parseFloat(item.rate) || 0,
+            amount: parseFloat(item.amount) || 0,
+          }));
+
+          // Insert all items in a batch
+          await tx.insert(invoiceItems).values(itemsToInsert);
+
+          console.log(
+            `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
+          );
+        }
+
+        console.log("Invoice created successfully:", insertedInvoice[0]);
+
+        return {
+          success: true,
+          data: insertedInvoice[0],
+        };
+      });
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Get all invoices
+  ipcMain.handle("invoice:getAll", async () => {
+    try {
+      const allInvoices = await db.select().from(invoices);
+      return {
+        success: true,
+        invoices: allInvoices,
+      };
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Get invoice by ID
+  ipcMain.handle("invoice:getById", async (event, id) => {
+    try {
+      const invoice = await db
+        .select()
+        .from(invoices)
+        .where(invoices.id.eq(id))
+        .limit(1);
+
+      if (invoice.length === 0) {
+        return {
+          success: false,
+          error: "Invoice not found",
+        };
+      }
+
+      return {
+        success: true,
+        invoice: invoice[0],
+      };
+    } catch (error) {
+      console.error(`Error fetching invoice with ID ${id}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Update an invoice
+  ipcMain.handle("invoice:update", async (event, { id, ...invoiceData }) => {
+    try {
+      if (!id) {
+        return {
+          success: false,
+          error: "Invoice ID is required",
+        };
+      }
+
+      // Prepare update data with the same transformations as in create
+      const updateData = {};
+
+      if (invoiceData.invoiceNumber)
+        updateData.invoiceNo = invoiceData.invoiceNumber;
+
+      if (invoiceData.invoiceDate) {
+        updateData.invoiceDate = new Date(
+          invoiceData.invoiceDate
+        ).toISOString();
+      }
+
+      if (invoiceData.dueDate) {
+        updateData.dueDate = new Date(invoiceData.dueDate).toISOString();
+      }
+
+      if (invoiceData.paymentTerms !== undefined)
+        updateData.terms = invoiceData.paymentTerms;
+      if (invoiceData.incomeLedger !== undefined)
+        updateData.ledger = invoiceData.incomeLedger;
+      if (invoiceData.customerNotes !== undefined)
+        updateData.narration = invoiceData.customerNotes;
+      if (invoiceData.termsAndConditions !== undefined)
+        updateData.termsAndConditions = invoiceData.termsAndConditions;
+
+      // Recalculate totals if needed
+      if (invoiceData.subtotal !== undefined) {
+        const subtotal = parseFloat(invoiceData.subtotal) || 0;
+        const cgstRate = invoiceData.cgstRate || 9;
+        const sgstRate = invoiceData.sgstRate || 9;
+        const cgstAmount = subtotal * (cgstRate / 100);
+        const sgstAmount = subtotal * (sgstRate / 100);
+        const totalAmount = subtotal + cgstAmount + sgstAmount;
+
+        updateData.subtotal = subtotal;
+        updateData.cgstRate = cgstRate;
+        updateData.sgstRate = sgstRate;
+        updateData.cgstAmount = cgstAmount;
+        updateData.sgstAmount = sgstAmount;
+        updateData.totalAmount = totalAmount;
+      }
+
+      const updatedInvoice = await db
+        .update(invoices)
+        .set(updateData)
+        .where(invoices.id.eq(id))
+        .returning();
+
+      return {
+        success: true,
+        invoice: updatedInvoice[0],
+      };
+    } catch (error) {
+      console.error(`Error updating invoice with ID ${id}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Delete an invoice
+  ipcMain.handle("invoice:delete", async (event, id) => {
+    try {
+      await db.delete(invoices).where(invoices.id.eq(id));
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error(`Error deleting invoice with ID ${id}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+}
+
+function registerInvoiceItemsIpc(ipcMain) {
+  // Handle adding invoice items
+  ipcMain.handle("add-invoice-items", async (event, items, invoiceId) => {
+    try {
+      console.log(`Adding ${items.length} items for invoice ID: ${invoiceId}`);
+
+      if (!invoiceId) {
+        return {
+          success: false,
+          error: "Invoice ID is required",
+        };
+      }
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return {
+          success: false,
+          error: "No items provided or invalid items format",
+        };
+      }
+
+      // Prepare items for insertion
+      const itemsToInsert = items.map((item) => ({
+        invoiceId: invoiceId,
+        itemId: item.id || 0, // If new item, use 0 or null as appropriate
+        itemDetails: item.description || item.name || "Unknown Item",
+        quantity: parseFloat(item.quantity) || 0,
+        rate: parseFloat(item.rate) || 0,
+        amount: parseFloat(item.amount) || 0,
+      }));
+
+      // Insert all items in a batch
+      const insertedItems = await db
+        .insert(invoiceItems)
+        .values(itemsToInsert)
+        .returning();
+
+      console.log(`Successfully added ${insertedItems.length} invoice items`);
+
+      return {
+        success: true,
+        data: insertedItems,
+      };
+    } catch (error) {
+      console.error("Error adding invoice items:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+}
+
+module.exports = { registerInvoiceGeneratorIpc, registerInvoiceItemsIpc };

@@ -6,6 +6,10 @@ const { spawn } = require("child_process");
 const { registerItemDashboardIpc } = require("./ipc/itemDashboard");
 const { registerCompanyDashboardIpc } = require("./ipc/companyDashboard");
 const { registerCustomerDashboardIpc } = require("./ipc/customerDashboard");
+const {
+  registerInvoiceGeneratorIpc,
+  registerInvoiceItemsIpc,
+} = require("./ipc/invoiceGenerator");
 
 // Create logs directory
 const logDir = path.join(app.getPath("userData"), "logs");
@@ -96,6 +100,8 @@ function createWindow() {
   registerItemDashboardIpc();
   registerCompanyDashboardIpc();
   registerCustomerDashboardIpc();
+  registerInvoiceGeneratorIpc();
+  registerInvoiceItemsIpc();
   console.log("IPC handlers registered");
 }
 

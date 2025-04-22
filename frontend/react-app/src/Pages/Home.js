@@ -19,7 +19,6 @@ import { BreadcrumbDynamic } from "../components/BreadCrumb";
 import { useBreadcrumb } from "../contexts/BreadcrumbContext";
 import { useParams } from "react-router-dom";
 import Company from "../components/MainDashboardComponents/Company";
-import TallyDirectImport from "../components/ImportToTally/TallyDirectImport";
 
 const Dashboard = () => {
   const { breadcrumbs, setMainDashboard } = useBreadcrumb();
@@ -60,11 +59,6 @@ const Dashboard = () => {
       url: "#",
       icon: ShoppingBag,
     },
-    // {
-    //   title: "Import to Tally",
-    //   url: "#",
-    //   icon: Import,
-    // },
   ];
   useEffect(() => {
     if (!defaultTab || defaultTab === "defaultTab")
@@ -116,7 +110,6 @@ const Dashboard = () => {
               {activeTab === "Items" && <Items />}
               {activeTab === "Invoice" && <ReportGenerator />}
               {activeTab === "Company" && <Company />}
-              {/* {activeTab === "Import to Tally" && <TallyDirectImport />} */}
             </main>
           </div>
         </ScrollArea>

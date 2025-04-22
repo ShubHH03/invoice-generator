@@ -55,11 +55,12 @@ import CustomerForm from "./CustomerForm";
 import CompanyForm from "./CompanyForm";
 import ItemForm from "./ItemForm";
 import generateInvoicePDF from "./generateInvoicePDF";
+// import { addDays } from "date-fns";
 
 const InvoiceForm = () => {
   // State for form fields
   const [customerName, setCustomerName] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState("INV-000002");
+  // const [invoiceNumber, setInvoiceNumber] = useState("INV-000002");
   const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [dueDate, setDueDate] = useState(new Date());
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
@@ -84,6 +85,14 @@ const InvoiceForm = () => {
   const [companySelectOpen, setCompanySelectOpen] = useState(false);
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
   const [itemSelectsOpen, setItemSelectsOpen] = useState({});
+  const [termSelectOpen, setTermSelectOpen] = useState(false);
+  // const [customers, setCustomers] = useState([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [companyInitials, setCompanyInitials] = useState("");
+  const [invoiceSequence, setInvoiceSequence] = useState("0001");
+  // Change this line
+  const [invoiceNumber, setInvoiceNumber] = useState(""); // Remove the default "INV-000002"
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -155,6 +164,38 @@ const InvoiceForm = () => {
 
     fetchItems();
   }, []);
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      setIsLoadingCustomers(true);
+      try {
+        // Using the electron API from preload.js to get customers
+        const response = await window.electron.getCustomer();
+        console.log("Customers API response:", response);
+
+        if (response.success) {
+          // Make sure this matches the actual response structure
+          const customersData = response.customers || response.data || [];
+          console.log("Customers data:", customersData);
+
+          setCustomers(customersData);
+        } else {
+          console.error("Failed to fetch customers:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+      } finally {
+        setIsLoadingCustomers(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+  // Add this with your other useEffects
+  useEffect(() => {
+    if (companyInitials) {
+      setInvoiceNumber(`${companyInitials}-${invoiceSequence}`);
+    }
+  }, [companyInitials, invoiceSequence]);
 
   // State for invoice items
   const [items, setItems] = useState([
@@ -296,13 +337,27 @@ const InvoiceForm = () => {
     );
 
     if (company) {
+      // Make sure we store the complete company object including the logo
       setSelectedCompany(company);
+
+      // Generate and set company initials
+      const initials = generateCompanyInitials(company.companyName);
+      setCompanyInitials(initials);
+
+      // Update invoice number format
+      setInvoiceNumber(`${initials}-${invoiceSequence}`);
 
       // Update other fields if needed
       if (company.defaultTerms) {
         setPaymentTerms(company.defaultTerms);
       }
+
+      console.log("Selected company with logo:", company.logo_path);
     }
+  };
+  const handleSequenceChange = (value) => {
+    setInvoiceSequence(value);
+    setInvoiceNumber(`${companyInitials}-${value}`);
   };
   const handleItemSelect = (rowId, itemId) => {
     console.log("Selecting item with ID:", itemId, "for row:", rowId);
@@ -337,6 +392,29 @@ const InvoiceForm = () => {
       }));
     }
   };
+  const handleCustomerSelect = (customerId) => {
+    console.log("Selecting customer with ID:", customerId);
+
+    // Find the customer
+    const customer = customers.find(
+      (customer) => String(customer.id) === String(customerId)
+    );
+
+    if (customer) {
+      setSelectedCustomer(customer);
+
+      // Create a full name from firstName and lastName, or use the name field if available
+      const fullName =
+        customer.firstName || customer.lastName
+          ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim()
+          : customer.name || "";
+
+      setCustomerName(fullName);
+
+      // You can set additional customer details here if needed
+      // For example, you might want to populate address fields, etc.
+    }
+  };
   const handleSaveItem = (newItem) => {
     // You would typically add the new item to your items array here
     console.log("New item saved:", newItem);
@@ -352,6 +430,7 @@ const InvoiceForm = () => {
     // Create the invoice object with company data
     const invoice = {
       company: selectedCompany,
+      logo_path: selectedCompany.logo_path,
       customerName,
       invoiceNumber,
       invoiceDate,
@@ -372,11 +451,16 @@ const InvoiceForm = () => {
     try {
       // Generate PDF with company data
       const doc = generateInvoicePDF(invoice);
+
+      // Test that the PDF is valid by forcing a download immediately
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
 
-      // Show download dialog and set preview flag
+      // Log for debugging
+      console.log("PDF URL created:", url);
+
+      // Show download dialog
       setShowDownloadDialog(true);
       setShowPdfPreview(false); // Reset initially
     } catch (error) {
@@ -408,6 +492,18 @@ const InvoiceForm = () => {
     console.log("Cancelled");
   };
 
+  // Add this after your useState declarations
+  const generateCompanyInitials = (companyName) => {
+    if (!companyName) return "";
+
+    // Split the company name by spaces and take first letter of each word
+    return companyName
+      .split(/\s+/)
+      .map((word) => word[0]?.toUpperCase() || "")
+      .join("")
+      .substring(0, 3); // Limit to 3 characters
+  };
+
   return (
     <div className="rounded-xl mt-2 space-y-6">
       <Card className="w-full shadow-sm border-gray-200">
@@ -426,48 +522,97 @@ const InvoiceForm = () => {
                   Company Name
                 </Label>
                 <div className="flex-1">
-                  <Select
-                    open={companySelectOpen}
-                    onOpenChange={setCompanySelectOpen}
-                    onValueChange={(value) => {
-                      handleCompanySelect(value);
-                      setCompanySelectOpen(false);
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={
-                          selectedCompany
-                            ? selectedCompany.companyName
-                            : isLoadingCompanies
-                            ? "Loading companies..."
-                            : "Select company"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="p-0">
-                      <Command className="rounded-md border-none bg-background">
-                        {/* Command content remains the same */}
-                        <CommandGroup>
-                          {companies.map((company) => (
-                            <CommandItem
-                              key={company.id}
-                              value={String(company.id)}
-                              onSelect={(value) => {
-                                handleCompanySelect(value);
-                                setCompanySelectOpen(false);
-                              }}
-                              className="flex items-center"
+                  <div className="flex items-center gap-2">
+                    {/* Add logo display here */}
+                    {selectedCompany && selectedCompany.logo && (
+                      <div className="h-10 w-10 flex-shrink-0 rounded-md border overflow-hidden">
+                        <img
+                          src={selectedCompany.logo}
+                          alt={`${selectedCompany.companyName} logo`}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <Select
+                      open={companySelectOpen}
+                      onOpenChange={setCompanySelectOpen}
+                      onValueChange={(value) => {
+                        handleCompanySelect(value);
+                        setCompanySelectOpen(false);
+                      }}
+                      className="flex-1"
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            selectedCompany
+                              ? selectedCompany.companyName
+                              : isLoadingCompanies
+                              ? "Loading companies..."
+                              : "Select company"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="p-0">
+                        <Command className="rounded-md border-none bg-background">
+                          <div className="p-2 border-b flex gap-2">
+                            <div className="relative flex-1">
+                              <CommandInput
+                                placeholder="Search customers..."
+                                className="h-10"
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-10"
+                              onClick={() => setCompanyFormOpen(true)}
                             >
-                              <div className="flex-1">
-                                {company.companyName}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </SelectContent>
-                  </Select>
+                              <Plus className="h-4 w-4" /> Add
+                            </Button>
+                          </div>
+                          <CommandEmpty>
+                            <div className="p-4 max-w-[600px] text-center text-muted-foreground">
+                              <p className="text-md">
+                                No matching customers found
+                              </p>
+                              <p className="text-sm mt-1">
+                                Click the{" "}
+                                <Plus className="h-3 w-3 inline-block mx-1" />{" "}
+                                icon above to add a new customer
+                              </p>
+                            </div>
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {companies.map((company) => (
+                              <CommandItem
+                                key={company.id}
+                                value={String(company.id)}
+                                onSelect={(value) => {
+                                  handleCompanySelect(value);
+                                  setCompanySelectOpen(false);
+                                }}
+                                className="flex items-center"
+                              >
+                                {/* Add logo in dropdown list */}
+                                {company.logo && (
+                                  <div className="h-6 w-6 mr-2 rounded overflow-hidden flex-shrink-0">
+                                    <img
+                                      src={company.logo}
+                                      alt={`${company.companyName} logo`}
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  {company.companyName}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 {/* Render the CompanyForm dialog */}
                 <CompanyForm
@@ -483,16 +628,25 @@ const InvoiceForm = () => {
                   Customer Name
                 </Label>
                 <div className="flex-1">
+                  {/* Customer Name Dropdown */}
                   <Select
                     open={customerSelectOpen}
                     onOpenChange={setCustomerSelectOpen}
                     onValueChange={(value) => {
-                      setCustomerName(value);
+                      handleCustomerSelect(value);
                       setCustomerSelectOpen(false);
                     }}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select or add customer" />
+                      <SelectValue
+                        placeholder={
+                          selectedCustomer
+                            ? `${selectedCustomer.firstName || ""} ${
+                                selectedCustomer.lastName || ""
+                              }`.trim()
+                            : "Select or add customer"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent className="p-0">
                       <Command className="rounded-md border-none bg-background">
@@ -525,20 +679,36 @@ const InvoiceForm = () => {
                         </CommandEmpty>
                         <div className="max-h-[200px] overflow-y-auto">
                           <CommandGroup>
-                            <CommandItem
-                              className="flex items-center"
-                              onSelect={(value) => {
-                                // Set your customer value
-                                setCustomerName(value);
-                                // Close the popover
-                                document.body.click();
-                              }}
-                            >
-                              <div className="flex-1">
-                                <Check className="mr-2 h-4 w-4 opacity-0" />
-                                Customer Name
-                              </div>
-                            </CommandItem>
+                            {isLoadingCustomers ? (
+                              <CommandItem disabled>
+                                Loading customers...
+                              </CommandItem>
+                            ) : customers.length === 0 ? (
+                              <CommandItem disabled>
+                                No customers found
+                              </CommandItem>
+                            ) : (
+                              customers.map((customer) => (
+                                <CommandItem
+                                  key={customer.id}
+                                  value={String(customer.id)}
+                                  onSelect={(value) => {
+                                    handleCustomerSelect(value);
+                                    setCustomerSelectOpen(false);
+                                  }}
+                                  className="flex items-center"
+                                >
+                                  <div className="flex-1">
+                                    {/* Display combined first name and last name */}
+                                    {`${customer.firstName || ""} ${
+                                      customer.lastName || ""
+                                    }`.trim() ||
+                                      customer.name ||
+                                      "Unnamed Customer"}
+                                  </div>
+                                </CommandItem>
+                              ))
+                            )}
                           </CommandGroup>
                         </div>
                       </Command>
@@ -561,11 +731,17 @@ const InvoiceForm = () => {
                 <Label htmlFor="invoiceNumber" className="w-32 pt-2">
                   Invoice No.
                 </Label>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative flex">
+                  {/* Company Initials (static part) */}
+                  <div className="flex-shrink-0 bg-gray-100 border border-r-0 rounded-l-md flex items-center px-3">
+                    <span className="text-gray-700">{companyInitials}-</span>
+                  </div>
+                  {/* Sequence Number (editable part) */}
                   <Input
-                    id="invoiceNumber"
-                    value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    id="invoiceSequence"
+                    value={invoiceSequence}
+                    onChange={(e) => handleSequenceChange(e.target.value)}
+                    className="rounded-l-none"
                   />
                 </div>
 
@@ -589,9 +765,10 @@ const InvoiceForm = () => {
                         id="invoiceDate"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center"
                       >
-                        {invoiceDate
+                        {invoiceDate instanceof Date && !isNaN(invoiceDate)
                           ? format(invoiceDate, "dd/MM/yyyy")
                           : "DD/MM/YYYY"}
+
                         <CalendarIcon className="h-4 w-4 opacity-50" />
                       </button>
                     </PopoverTrigger>
@@ -612,18 +789,75 @@ const InvoiceForm = () => {
                 <div className="flex-1 relative">
                   <Select
                     value={paymentTerms}
-                    onValueChange={handleTermsChange}
+                    onValueChange={(value) => {
+                      setPaymentTerms(value);
+                      if (invoiceDate) {
+                        const newDueDate = addDays(
+                          new Date(invoiceDate),
+                          parseInt(value)
+                        );
+                        setDueDate(newDueDate);
+                      }
+                    }}
+                    open={termSelectOpen}
+                    onOpenChange={setTermSelectOpen}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select payment terms" />
+                      <SelectValue
+                        placeholder="Select or enter terms"
+                        // 👇 Add this line
+                        children={
+                          paymentTerms ? `Net ${paymentTerms}` : undefined
+                        }
+                      />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Due On Receipt</SelectItem>
-                      <SelectItem value="15">Net 15</SelectItem>
-                      <SelectItem value="30">Net 30</SelectItem>
-                      <SelectItem value="45">Net 45</SelectItem>
-                      <SelectItem value="60">Net 60</SelectItem>
-                      <SelectItem value="90">Net 90</SelectItem>
+                    <SelectContent className="p-0">
+                      <Command className="rounded-md border-none bg-background">
+                        <div className="p-2 border-b flex gap-2">
+                          <div className="relative flex-1">
+                            <CommandInput
+                              placeholder="Enter custom days..."
+                              className="h-10"
+                              onValueChange={(val) => {
+                                const days = parseInt(val);
+                                if (!isNaN(days)) {
+                                  setPaymentTerms(days.toString());
+                                  if (invoiceDate) {
+                                    const newDueDate = addDays(
+                                      new Date(invoiceDate),
+                                      days
+                                    );
+                                    setDueDate(newDueDate);
+                                  }
+                                  setTermSelectOpen(false);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto">
+                          <CommandGroup>
+                            {["0", "15", "30", "45", "60", "90"].map((term) => (
+                              <CommandItem
+                                key={term}
+                                onSelect={() => {
+                                  setPaymentTerms(term);
+                                  if (invoiceDate) {
+                                    const newDueDate = addDays(
+                                      new Date(invoiceDate),
+                                      parseInt(term)
+                                    );
+                                    setDueDate(newDueDate);
+                                  }
+                                  setTermSelectOpen(false);
+                                }}
+                              >
+                                Net {term}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </div>
+                      </Command>
                     </SelectContent>
                   </Select>
                 </div>
@@ -638,7 +872,10 @@ const InvoiceForm = () => {
                         id="dueDate"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center"
                       >
-                        {dueDate ? format(dueDate, "dd/MM/yyyy") : "DD/MM/YYYY"}
+                        {dueDate instanceof Date && !isNaN(dueDate)
+                          ? format(dueDate, "dd/MM/yyyy")
+                          : "DD/MM/YYYY"}
+
                         <CalendarIcon className="h-4 w-4 opacity-50" />
                       </button>
                     </PopoverTrigger>

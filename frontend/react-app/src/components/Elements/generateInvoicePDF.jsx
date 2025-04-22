@@ -184,37 +184,119 @@ export const generateInvoicePDF = (invoice) => {
   doc.line(midX, margin, midX, margin + topSectionHeight);
 
   // Left side - Company info with logo
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  doc.text(
-    invoice.company?.companyName || "Company Name",
-    margin + 5,
-    margin + 10
-  );
-  doc.setFont(undefined, "normal");
-  doc.text(
-    invoice.company?.addressLine1 || "Address Line 1",
-    margin + 5,
-    margin + 15
-  );
-  doc.text(
-    invoice.company?.addressLine2 || "Address Line 2",
-    margin + 5,
-    margin + 20
-  );
-  doc.text(invoice.company?.city || "City", margin + 5, margin + 25);
-  doc.text(
-    `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`,
-    margin + 5,
-    margin + 30
-  );
-  doc.text(
-    `State Name: ${invoice.company?.state || "State"}, Code: ${
-      invoice.company?.stateCode || "Code"
-    }`,
-    margin + 5,
-    margin + 35
-  );
+  // Add company logo if provided
+  // if (invoice.company?.logo) {
+  //   // Define logo dimensions and position
+  function getImageTypeFromPath(path) {
+    if (!path) return "PNG";
+    const extension = path.split(".").pop().toLowerCase();
+    switch (extension) {
+      case "jpg":
+      case "jpeg":
+        return "JPEG";
+      case "png":
+        return "PNG";
+      default:
+        return "PNG";
+    }
+  }
+  if (invoice.company?.logo) {
+    const logoWidth = 30; // Adjust as needed
+    const logoHeight = 30; // Adjust as needed
+    const logoX = margin + 5;
+    const logoY = margin + 5;
+
+    try {
+      // If logo is a URL or file path
+      doc.addImage(
+        invoice.company.logo,
+        getImageTypeFromPath(invoice.company.logo), // Helper function to determine image type
+        logoX,
+        logoY,
+        logoWidth,
+        logoHeight
+      );
+
+      // Start company text to the right of the logo
+      doc.setFontSize(10);
+      doc.setFont(undefined, "bold");
+      doc.text(
+        invoice.company?.companyName || "Company Name",
+        logoX + logoWidth + 5,
+        margin + 10
+      );
+      doc.setFont(undefined, "normal");
+      doc.text(
+        invoice.company?.addressLine1 || "Address Line 1",
+        logoX + logoWidth + 5,
+        margin + 15
+      );
+      doc.text(
+        invoice.company?.addressLine2 || "Address Line 2",
+        logoX + logoWidth + 5,
+        margin + 20
+      );
+      doc.text(
+        invoice.company?.city || "City",
+        logoX + logoWidth + 5,
+        margin + 25
+      );
+      doc.text(
+        `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`,
+        logoX + logoWidth + 5,
+        margin + 30
+      );
+      doc.text(
+        `State Name: ${invoice.company?.state || "State"}, Code: ${
+          invoice.company?.stateCode || "Code"
+        }`,
+        logoX + logoWidth + 5,
+        margin + 35
+      );
+    } catch (error) {
+      console.error("Error adding logo:", error);
+      // Fallback to text-only if logo fails
+      defaultCompanyText();
+    }
+  } else {
+    // Default layout without logo
+    defaultCompanyText();
+  }
+
+  // Function for default company text layout (without logo)
+  function defaultCompanyText() {
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text(
+      invoice.company?.companyName || "Company Name",
+      margin + 5,
+      margin + 10
+    );
+    doc.setFont(undefined, "normal");
+    doc.text(
+      invoice.company?.addressLine1 || "Address Line 1",
+      margin + 5,
+      margin + 15
+    );
+    doc.text(
+      invoice.company?.addressLine2 || "Address Line 2",
+      margin + 5,
+      margin + 20
+    );
+    doc.text(invoice.company?.city || "City", margin + 5, margin + 25);
+    doc.text(
+      `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`,
+      margin + 5,
+      margin + 30
+    );
+    doc.text(
+      `State Name: ${invoice.company?.state || "State"}, Code: ${
+        invoice.company?.stateCode || "Code"
+      }`,
+      margin + 5,
+      margin + 35
+    );
+  }
 
   // Right side - Invoice details in table format
   const rightX = midX + 5;
@@ -421,6 +503,8 @@ export const generateInvoicePDF = (invoice) => {
   let itemY = tableY + tableHeaderHeight;
   const itemHeight = 25; // Reduced height
   let totalQuantity = 0;
+  let currentPage = 1;
+  const itemsPerPage = 7; // Set limit to 7 items per page
 
   // Use actual invoice items
   const itemsToDisplay =
@@ -428,7 +512,57 @@ export const generateInvoicePDF = (invoice) => {
 
   // Process each item in the invoice
   itemsToDisplay.forEach((item, index) => {
-    currentX = margin;
+    // Check if we need a new page
+    if (index > 0 && index % itemsPerPage === 0) {
+      // Add a new page
+      doc.addPage();
+      currentPage++;
+
+      // Reset Y position for new page
+      itemY = margin + tableHeaderHeight;
+
+      // Redraw table header on new page
+      let headerX = margin;
+      doc.setFillColor(240, 240, 240);
+
+      // Draw table header cells
+      doc.rect(headerX, margin, colWidths.slNo, tableHeaderHeight, "S");
+      headerX += colWidths.slNo;
+      doc.rect(headerX, margin, colWidths.description, tableHeaderHeight, "S");
+      headerX += colWidths.description;
+      doc.rect(headerX, margin, colWidths.hsn, tableHeaderHeight, "S");
+      headerX += colWidths.hsn;
+      doc.rect(headerX, margin, colWidths.quantity, tableHeaderHeight, "S");
+      headerX += colWidths.quantity;
+      doc.rect(headerX, margin, colWidths.rate, tableHeaderHeight, "S");
+      headerX += colWidths.rate;
+      doc.rect(headerX, margin, colWidths.per, tableHeaderHeight, "S");
+      headerX += colWidths.per;
+      doc.rect(headerX, margin, colWidths.amount, tableHeaderHeight, "S");
+
+      doc.setFontSize(8);
+      doc.setFont(undefined, "bold");
+
+      // Draw header text
+      headerX = margin;
+      doc.text("Sl", headerX + 1, margin + 6);
+      headerX += colWidths.slNo;
+      doc.text("Particulars", headerX + 20, margin + 6);
+      headerX += colWidths.description;
+      doc.text("HSN/SAC", headerX + 5, margin + 6);
+      headerX += colWidths.hsn;
+      doc.text("Qty", headerX + 5, margin + 6);
+      headerX += colWidths.quantity;
+      doc.text("Rate", headerX + 5, margin + 6);
+      headerX += colWidths.rate;
+      doc.text("Per", headerX + 3, margin + 6);
+      headerX += colWidths.per;
+      doc.text("Amount", headerX + 5, margin + 6);
+
+      doc.setFont(undefined, "normal");
+    }
+
+    let currentX = margin;
 
     // Calculate quantities for totals
     const itemQty = parseFloat(item.quantity) || 0;
@@ -482,281 +616,287 @@ export const generateInvoicePDF = (invoice) => {
 
     itemY += itemHeight;
   });
+  // Only add the footer elements on the last page
+  // Check if we're on the last page before drawing summary content
+  if (currentPage === Math.ceil(itemsToDisplay.length / itemsPerPage)) {
+    // Output CGST and SGST rows
+    const taxY = itemY + 10;
+    let currentX = margin;
 
-  // Output CGST and SGST rows
-  const taxY = itemY + 10;
-  currentX = margin;
+    doc.setFont(undefined, "normal");
+    doc.text("Output CGST", currentX + 8, taxY);
+    currentX +=
+      colWidths.slNo +
+      colWidths.description +
+      colWidths.hsn +
+      colWidths.quantity +
+      colWidths.rate +
+      colWidths.per;
+    doc.text(formatCurrency(totals.cgstAmount), currentX + 5, taxY);
 
-  doc.setFont(undefined, "normal");
-  doc.text("Output CGST", currentX + 8, taxY);
-  currentX +=
-    colWidths.slNo +
-    colWidths.description +
-    colWidths.hsn +
-    colWidths.quantity +
-    colWidths.rate +
-    colWidths.per;
-  doc.text(formatCurrency(totals.cgstAmount), currentX + 5, taxY);
+    const sgstY = taxY + 5;
+    currentX = margin;
+    doc.text("Output SGST", currentX + 8, sgstY);
+    currentX +=
+      colWidths.slNo +
+      colWidths.description +
+      colWidths.hsn +
+      colWidths.quantity +
+      colWidths.rate +
+      colWidths.per;
+    doc.text(formatCurrency(totals.sgstAmount), currentX + 5, sgstY);
 
-  const sgstY = taxY + 5;
-  currentX = margin;
-  doc.text("Output SGST", currentX + 8, sgstY);
-  currentX +=
-    colWidths.slNo +
-    colWidths.description +
-    colWidths.hsn +
-    colWidths.quantity +
-    colWidths.rate +
-    colWidths.per;
-  doc.text(formatCurrency(totals.sgstAmount), currentX + 5, sgstY);
+    const totalY = sgstY + 10;
+    currentX = margin;
 
-  const totalY = sgstY + 10;
-  currentX = margin;
+    // Total row
+    doc.setFont(undefined, "bold");
+    doc.text("Total", currentX + 8, totalY);
 
-  // Total row
-  doc.setFont(undefined, "bold");
-  doc.text("Total", currentX + 8, totalY);
+    // Total Quantity
+    currentX += colWidths.slNo + colWidths.description + colWidths.hsn;
+    doc.text(totalQuantity.toString(), currentX + 5, totalY);
 
-  // Total Quantity
-  currentX += colWidths.slNo + colWidths.description + colWidths.hsn;
-  doc.text(totalQuantity.toString(), currentX + 5, totalY);
+    // Total Amount
+    currentX += colWidths.quantity + colWidths.rate + colWidths.per;
+    doc.text(formatCurrency(totals.grandTotal), currentX + 5, totalY);
 
-  // Total Amount
-  currentX += colWidths.quantity + colWidths.rate + colWidths.per;
-  doc.text(formatCurrency(totals.grandTotal), currentX + 5, totalY);
+    // Amount in words
+    doc.setFontSize(8);
+    doc.text("Amount Chargeable (in words)", margin + 5, totalY + 10);
+    doc.setFont(undefined, "bold");
+    doc.text(numberToWords(totals.grandTotal), margin + 80, totalY + 10);
+    doc.text("E & O.E", pageWidth - margin - 10, totalY + 10, {
+      align: "right",
+    });
+    doc.setFont(undefined, "normal");
 
-  // Amount in words
-  doc.setFontSize(8);
-  doc.text("Amount Chargeable (in words)", margin + 5, totalY + 10);
-  doc.setFont(undefined, "bold");
-  doc.text(numberToWords(totals.grandTotal), margin + 80, totalY + 10);
-  doc.text("E & O.E", pageWidth - margin - 10, totalY + 10, {
-    align: "right",
-  });
-  doc.setFont(undefined, "normal");
+    // Tax details table - adjusted positioning and layout
+    const taxTableY = totalY + 15;
+    const fullWidth = pageWidth - 2 * margin;
+    const colWidth = fullWidth / 5;
 
-  // Tax details table - adjusted positioning and layout
-  const taxTableY = totalY + 15;
-  const fullWidth = pageWidth - 2 * margin;
-  const colWidth = fullWidth / 5;
+    // Main header row
+    doc.rect(margin, taxTableY, colWidth, 15, "S"); // HSN/SAC
+    doc.rect(margin + colWidth, taxTableY, colWidth, 15, "S"); // Taxable Value
+    doc.rect(margin + colWidth * 2, taxTableY, colWidth, 15, "S"); // Central Tax
+    doc.rect(margin + colWidth * 3, taxTableY, colWidth, 15, "S"); // State Tax
+    doc.rect(margin + colWidth * 4, taxTableY, colWidth, 15, "S"); // Total
 
-  // Main header row
-  doc.rect(margin, taxTableY, colWidth, 15, "S"); // HSN/SAC
-  doc.rect(margin + colWidth, taxTableY, colWidth, 15, "S"); // Taxable Value
-  doc.rect(margin + colWidth * 2, taxTableY, colWidth, 15, "S"); // Central Tax
-  doc.rect(margin + colWidth * 3, taxTableY, colWidth, 15, "S"); // State Tax
-  doc.rect(margin + colWidth * 4, taxTableY, colWidth, 15, "S"); // Total
+    // Headers
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
+    doc.text("HSN/SAC", margin + colWidth / 2 - 10, taxTableY + 10);
+    doc.text("Taxable Value", margin + colWidth * 1.5 - 10, taxTableY + 10);
+    doc.text("Central Tax", margin + colWidth * 2.5 - 8, taxTableY + 10);
+    doc.text("State Tax", margin + colWidth * 3.5 - 8, taxTableY + 10);
+    doc.text("Total Tax Amount", margin + colWidth * 4.5 - 10, taxTableY + 10);
 
-  // Headers
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
-  doc.text("HSN/SAC", margin + colWidth / 2 - 10, taxTableY + 10);
-  doc.text("Taxable Value", margin + colWidth * 1.5 - 10, taxTableY + 10);
-  doc.text("Central Tax", margin + colWidth * 2.5 - 8, taxTableY + 10);
-  doc.text("State Tax", margin + colWidth * 3.5 - 8, taxTableY + 10);
-  doc.text("Total Tax Amount", margin + colWidth * 4.5 - 10, taxTableY + 10);
+    // Sub-headers for tax columns
+    const subHeaderY = taxTableY + 15;
+    // Central Tax sub-headers
+    doc.rect(margin + colWidth * 2, subHeaderY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 2.5, subHeaderY, colWidth / 2, 10, "S");
+    doc.text("Rate", margin + colWidth * 2.25 - 2, subHeaderY + 7);
+    doc.text("Amount", margin + colWidth * 2.75 - 5, subHeaderY + 7);
 
-  // Sub-headers for tax columns
-  const subHeaderY = taxTableY + 15;
-  // Central Tax sub-headers
-  doc.rect(margin + colWidth * 2, subHeaderY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 2.5, subHeaderY, colWidth / 2, 10, "S");
-  doc.text("Rate", margin + colWidth * 2.25 - 2, subHeaderY + 7);
-  doc.text("Amount", margin + colWidth * 2.75 - 5, subHeaderY + 7);
+    // State Tax sub-headers
+    doc.rect(margin + colWidth * 3, subHeaderY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 3.5, subHeaderY, colWidth / 2, 10, "S");
+    doc.text("Rate", margin + colWidth * 3.25 - 2, subHeaderY + 7);
+    doc.text("Amount", margin + colWidth * 3.75 - 5, subHeaderY + 7);
 
-  // State Tax sub-headers
-  doc.rect(margin + colWidth * 3, subHeaderY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 3.5, subHeaderY, colWidth / 2, 10, "S");
-  doc.text("Rate", margin + colWidth * 3.25 - 2, subHeaderY + 7);
-  doc.text("Amount", margin + colWidth * 3.75 - 5, subHeaderY + 7);
+    // Data row
+    const dataY = subHeaderY + 10;
+    doc.setFont(undefined, "normal");
 
-  // Data row
-  const dataY = subHeaderY + 10;
-  doc.setFont(undefined, "normal");
+    // Generate aggregated tax data by HSN code
+    const taxData = {};
+    itemsToDisplay.forEach((item) => {
+      const hsn = item.hsn || "NA";
+      if (!taxData[hsn]) {
+        taxData[hsn] = {
+          taxableValue: 0,
+          cgstAmount: 0,
+          sgstAmount: 0,
+        };
+      }
+      const itemAmount =
+        parseFloat(item.amount) ||
+        parseFloat(item.quantity) * parseFloat(item.rate) ||
+        0;
+      taxData[hsn].taxableValue += itemAmount;
+      taxData[hsn].cgstAmount += itemAmount * (totals.cgstRate / 100);
+      taxData[hsn].sgstAmount += itemAmount * (totals.sgstRate / 100);
+    });
 
-  // Generate aggregated tax data by HSN code
-  const taxData = {};
-  itemsToDisplay.forEach((item) => {
-    const hsn = item.hsn || "NA";
-    if (!taxData[hsn]) {
-      taxData[hsn] = {
-        taxableValue: 0,
-        cgstAmount: 0,
-        sgstAmount: 0,
+    // Use first HSN code as example if no items
+    if (Object.keys(taxData).length === 0) {
+      taxData[""] = {
+        taxableValue: totals.subtotal,
+        cgstAmount: totals.cgstAmount,
+        sgstAmount: totals.sgstAmount,
       };
     }
-    const itemAmount =
-      parseFloat(item.amount) ||
-      parseFloat(item.quantity) * parseFloat(item.rate) ||
-      0;
-    taxData[hsn].taxableValue += itemAmount;
-    taxData[hsn].cgstAmount += itemAmount * (totals.cgstRate / 100);
-    taxData[hsn].sgstAmount += itemAmount * (totals.sgstRate / 100);
-  });
 
-  // Use first HSN code as example if no items
-  if (Object.keys(taxData).length === 0) {
-    taxData[""] = {
-      taxableValue: totals.subtotal,
-      cgstAmount: totals.cgstAmount,
-      sgstAmount: totals.sgstAmount,
-    };
-  }
+    // Display tax data by HSN
+    let hsnY = dataY;
+    Object.entries(taxData).forEach(([hsn, data]) => {
+      doc.rect(margin, hsnY, colWidth, 10, "S");
+      doc.rect(margin + colWidth, hsnY, colWidth, 10, "S");
+      doc.rect(margin + colWidth * 2, hsnY, colWidth / 2, 10, "S");
+      doc.rect(margin + colWidth * 2.5, hsnY, colWidth / 2, 10, "S");
+      doc.rect(margin + colWidth * 3, hsnY, colWidth / 2, 10, "S");
+      doc.rect(margin + colWidth * 3.5, hsnY, colWidth / 2, 10, "S");
+      doc.rect(margin + colWidth * 4, hsnY, colWidth, 10, "S");
 
-  // Display tax data by HSN
-  let hsnY = dataY;
-  Object.entries(taxData).forEach(([hsn, data]) => {
-    doc.rect(margin, hsnY, colWidth, 10, "S");
-    doc.rect(margin + colWidth, hsnY, colWidth, 10, "S");
-    doc.rect(margin + colWidth * 2, hsnY, colWidth / 2, 10, "S");
-    doc.rect(margin + colWidth * 2.5, hsnY, colWidth / 2, 10, "S");
-    doc.rect(margin + colWidth * 3, hsnY, colWidth / 2, 10, "S");
-    doc.rect(margin + colWidth * 3.5, hsnY, colWidth / 2, 10, "S");
-    doc.rect(margin + colWidth * 4, hsnY, colWidth, 10, "S");
+      // Data values
+      doc.text(hsn, margin + 20, hsnY + 7);
+      doc.text(
+        formatCurrency(data.taxableValue),
+        margin + colWidth + 10,
+        hsnY + 7
+      );
+      doc.text(`${totals.cgstRate}%`, margin + colWidth * 2.25 - 2, hsnY + 7);
+      doc.text(
+        formatCurrency(data.cgstAmount),
+        margin + colWidth * 2.75 - 7,
+        hsnY + 7
+      );
+      doc.text(`${totals.sgstRate}%`, margin + colWidth * 3.25 - 2, hsnY + 7);
+      doc.text(
+        formatCurrency(data.sgstAmount),
+        margin + colWidth * 3.75 - 7,
+        hsnY + 7
+      );
+      doc.text(
+        formatCurrency(data.cgstAmount + data.sgstAmount),
+        margin + colWidth * 4.5 - 10,
+        hsnY + 7
+      );
 
-    // Data values
-    doc.text(hsn, margin + 20, hsnY + 7);
+      hsnY += 10;
+    });
+
+    // Total row
+    const taxTotalY = hsnY;
+    doc.rect(margin, taxTotalY, colWidth, 10, "S");
+    doc.rect(margin + colWidth, taxTotalY, colWidth, 10, "S");
+    doc.rect(margin + colWidth * 2, taxTotalY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 2.5, taxTotalY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 3, taxTotalY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 3.5, taxTotalY, colWidth / 2, 10, "S");
+    doc.rect(margin + colWidth * 4, taxTotalY, colWidth, 10, "S");
+
+    doc.setFont(undefined, "bold");
+    doc.text("Total", margin + 20, taxTotalY + 7);
     doc.text(
-      formatCurrency(data.taxableValue),
+      formatCurrency(totals.subtotal),
       margin + colWidth + 10,
-      hsnY + 7
+      taxTotalY + 7
     );
-    doc.text(`${totals.cgstRate}%`, margin + colWidth * 2.25 - 2, hsnY + 7);
     doc.text(
-      formatCurrency(data.cgstAmount),
+      formatCurrency(totals.cgstAmount),
       margin + colWidth * 2.75 - 7,
-      hsnY + 7
+      taxTotalY + 7
     );
-    doc.text(`${totals.sgstRate}%`, margin + colWidth * 3.25 - 2, hsnY + 7);
     doc.text(
-      formatCurrency(data.sgstAmount),
+      formatCurrency(totals.sgstAmount),
       margin + colWidth * 3.75 - 7,
-      hsnY + 7
+      taxTotalY + 7
     );
     doc.text(
-      formatCurrency(data.cgstAmount + data.sgstAmount),
+      formatCurrency(totals.totalTax),
       margin + colWidth * 4.5 - 10,
-      hsnY + 7
+      taxTotalY + 7
     );
 
-    hsnY += 10;
-  });
-
-  // Total row
-  const taxTotalY = hsnY;
-  doc.rect(margin, taxTotalY, colWidth, 10, "S");
-  doc.rect(margin + colWidth, taxTotalY, colWidth, 10, "S");
-  doc.rect(margin + colWidth * 2, taxTotalY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 2.5, taxTotalY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 3, taxTotalY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 3.5, taxTotalY, colWidth / 2, 10, "S");
-  doc.rect(margin + colWidth * 4, taxTotalY, colWidth, 10, "S");
-
-  doc.setFont(undefined, "bold");
-  doc.text("Total", margin + 20, taxTotalY + 7);
-  doc.text(
-    formatCurrency(totals.subtotal),
-    margin + colWidth + 10,
-    taxTotalY + 7
-  );
-  doc.text(
-    formatCurrency(totals.cgstAmount),
-    margin + colWidth * 2.75 - 7,
-    taxTotalY + 7
-  );
-  doc.text(
-    formatCurrency(totals.sgstAmount),
-    margin + colWidth * 3.75 - 7,
-    taxTotalY + 7
-  );
-  doc.text(
-    formatCurrency(totals.totalTax),
-    margin + colWidth * 4.5 - 10,
-    taxTotalY + 7
-  );
-
-  // Tax amount in words
-  const taxWordsY = taxTotalY + 15;
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8);
-  doc.text("Tax Amount (in words) :", margin + 5, taxWordsY);
-  doc.setFont(undefined, "bold");
-  doc.text(numberToWords(totals.totalTax), margin + 80, taxWordsY);
-
-  // Declaration section
-  const declarationY = taxWordsY + 15;
-  const declarationHeight = 20;
-
-  doc.rect(
-    margin,
-    declarationY,
-    (2 * (pageWidth - 2 * margin)) / 3,
-    declarationHeight,
-    "S"
-  );
-  doc.rect(
-    margin + (2 * (pageWidth - 2 * margin)) / 3,
-    declarationY,
-    (pageWidth - 2 * margin) / 3,
-    declarationHeight,
-    "S"
-  );
-
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
-  doc.text("Declaration", margin + 5, declarationY + 5);
-  doc.setFont(undefined, "normal");
-  doc.text(
-    "We declare that this invoice shows the actual price of the",
-    margin + 5,
-    declarationY + 10
-  );
-  doc.text(
-    "goods described and that all particulars are true and correct",
-    margin + 5,
-    declarationY + 15
-  );
-
-  // Add signature if available
-  if (invoice.signature) {
-    // Position for signature image
-    const signatureX = pageWidth - margin - 50;
-    const signatureY = declarationY + 5;
-    const signatureWidth = 40;
-    const signatureHeight = 15;
-
-    // Add signature image
-    doc.addImage(
-      invoice.signature,
-      "PNG", // or appropriate format
-      signatureX,
-      signatureY,
-      signatureWidth,
-      signatureHeight
-    );
-  }
-
-  // Add customer notes if available
-  if (invoice.customerNotes) {
-    const notesY = declarationY + 25;
+    // Tax amount in words
+    const taxWordsY = taxTotalY + 15;
+    doc.setFont(undefined, "normal");
     doc.setFontSize(8);
-    doc.text("Notes:", margin + 5, notesY);
-    doc.text(invoice.customerNotes, margin + 20, notesY);
+    doc.text("Tax Amount (in words) :", margin + 5, taxWordsY);
+    doc.setFont(undefined, "bold");
+    doc.text(numberToWords(totals.totalTax), margin + 80, taxWordsY);
+
+    // Declaration section
+    const declarationY = taxWordsY + 15;
+    const declarationHeight = 20;
+
+    doc.rect(
+      margin,
+      declarationY,
+      (2 * (pageWidth - 2 * margin)) / 3,
+      declarationHeight,
+      "S"
+    );
+    doc.rect(
+      margin + (2 * (pageWidth - 2 * margin)) / 3,
+      declarationY,
+      (pageWidth - 2 * margin) / 3,
+      declarationHeight,
+      "S"
+    );
+
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
+    doc.text("Declaration", margin + 5, declarationY + 5);
+    doc.setFont(undefined, "normal");
+    doc.text(
+      "We declare that this invoice shows the actual price of the",
+      margin + 5,
+      declarationY + 10
+    );
+    doc.text(
+      "goods described and that all particulars are true and correct",
+      margin + 5,
+      declarationY + 15
+    );
+
+    // Add signature if available
+    if (invoice.signature) {
+      // Position for signature image
+      const signatureX = pageWidth - margin - 50;
+      const signatureY = declarationY + 5;
+      const signatureWidth = 40;
+      const signatureHeight = 15;
+
+      // Add signature image
+      doc.addImage(
+        invoice.signature,
+        "PNG", // or appropriate format
+        signatureX,
+        signatureY,
+        signatureWidth,
+        signatureHeight
+      );
+    }
+
+    // Add customer notes if available
+    if (invoice.customerNotes) {
+      const notesY = declarationY + 25;
+      doc.setFontSize(8);
+      doc.text("Notes:", margin + 5, notesY);
+      doc.text(invoice.customerNotes, margin + 20, notesY);
+    }
+
+    // Add "Authorized Signatory" text below where the signature would be
+    doc.text(
+      "Authorized Signatory",
+      pageWidth - margin - 35,
+      declarationY + 25
+    );
+
+    // Computer generated invoice text at bottom
+    doc.setFontSize(9);
+    doc.text(
+      "This is a Computer Generated Invoice",
+      pageWidth / 2,
+      pageHeight - margin - 5,
+      { align: "center" }
+    );
+
+    return doc;
   }
-
-  // Add "Authorized Signatory" text below where the signature would be
-  doc.text("Authorized Signatory", pageWidth - margin - 35, declarationY + 25);
-
-  // Computer generated invoice text at bottom
-  doc.setFontSize(9);
-  doc.text(
-    "This is a Computer Generated Invoice",
-    pageWidth / 2,
-    pageHeight - margin - 5,
-    { align: "center" }
-  );
-
-  return doc;
 };
-
 export default generateInvoicePDF;

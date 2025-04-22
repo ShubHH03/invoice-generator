@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("get-company-image", imagePath),
   getItem: () => ipcRenderer.invoke("get-Item"),
   addCustomer: (data) => ipcRenderer.invoke("add-customer", data),
+  getCustomer: () => ipcRenderer.invoke("get-customer"),
 });

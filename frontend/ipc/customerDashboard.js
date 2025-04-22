@@ -2,7 +2,7 @@
 
 const { ipcMain } = require("electron");
 const DatabaseManager = require("../db/db");
-const { customers } = require("../db/schema/Customer"); 
+const { customers } = require("../db/schema/Customer");
 
 function registerCustomerDashboardIpc() {
   try {
@@ -57,7 +57,19 @@ function registerCustomerDashboardIpc() {
       }
     });
 
-    console.log("IPC handler 'add-customer' registered successfully");
+    ipcMain.handle("get-customer", async (event) => {
+      try {
+        console.log("Received get-customer request");
+        const result = await db.select().from(customers);
+        console.log(`Retrieved ${result.length} customers from db`);
+        return { success: true, customers: result };
+      } catch (err) {
+        console.error("Error in get-customer:", err);
+        return { success: false, error: err.message };
+      }
+    });
+
+    console.log("IPC handlers registered successfully");
   } catch (err) {
     console.error("Failed to initialize customer dashboard IPC:", err);
   }

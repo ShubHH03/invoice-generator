@@ -45,64 +45,38 @@ function registerInvoiceGeneratorIpc() {
       const sgstAmount = subtotal * (sgstRate / 100);
       const totalAmount = subtotal + cgstAmount + sgstAmount;
 
-      // Start a transaction to ensure both invoice and items are saved together
-      return await db.transaction(async (tx) => {
-        // Create the invoice record in the database
-        const insertedInvoice = await tx
-          .insert(invoices)
-          .values({
-            companyId: invoiceData.companyId,
-            customerId: invoiceData.customerId,
-            invoiceNo: invoiceData.invoiceNumber,
-            invoiceDate: invoiceDateISO,
-            dueDate: dueDateISO,
-            terms: invoiceData.paymentTerms || "0",
-            ledger: invoiceData.incomeLedger || "",
-            cgstRate: cgstRate,
-            sgstRate: sgstRate,
-            subtotal: subtotal,
-            cgstAmount: cgstAmount,
-            sgstAmount: sgstAmount,
-            totalAmount: totalAmount,
-            narration: invoiceData.customerNotes || "",
-            termsAndConditions: invoiceData.termsAndConditions || "",
-            status: invoiceData.status || "sent",
-          })
-          .returning();
+      // Create the invoice record in the database
+      const insertedInvoice = await db
+        .insert(invoices)
+        .values({
+          companyId: invoiceData.companyId,
+          customerId: invoiceData.customerId,
+          invoiceNo: invoiceData.invoiceNumber,
+          invoiceDate: invoiceDateISO,
+          dueDate: dueDateISO,
+          terms: invoiceData.paymentTerms || "0",
+          ledger: invoiceData.incomeLedger || "",
+          cgstRate: cgstRate,
+          sgstRate: sgstRate,
+          subtotal: subtotal,
+          cgstAmount: cgstAmount,
+          sgstAmount: sgstAmount,
+          totalAmount: totalAmount,
+          narration: invoiceData.customerNotes || "",
+          termsAndConditions: invoiceData.termsAndConditions || "",
+        })
+        .returning();
 
-        const invoiceId = insertedInvoice[0].id;
+      // Now handle the invoice items if needed
+      // Note: This would require an additional table for invoice items
+      // that's not shown in the schema provided
 
-        // Process invoice items if they exist
-        if (
-          invoiceData.items &&
-          Array.isArray(invoiceData.items) &&
-          invoiceData.items.length > 0
-        ) {
-          // Transform items to match the database schema
-          const itemsToInsert = invoiceData.items.map((item) => ({
-            invoiceId: invoiceId,
-            itemId: item.id || 0, // If new item, use 0 or null as appropriate
-            itemDetails: item.description || "",
-            quantity: parseFloat(item.quantity) || 0,
-            rate: parseFloat(item.rate) || 0,
-            amount: parseFloat(item.amount) || 0,
-          }));
+      console.log("Invoice created successfully:", insertedInvoice);
 
-          // Insert all items in a batch
-          await tx.insert(invoiceItems).values(itemsToInsert);
-
-          console.log(
-            `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
-          );
-        }
-
-        console.log("Invoice created successfully:", insertedInvoice[0]);
-
-        return {
-          success: true,
-          data: insertedInvoice[0],
-        };
-      });
+      return {
+        success: true,
+        data: insertedInvoice[0],
+      };
     } catch (error) {
       console.error("Error creating invoice:", error);
       return {

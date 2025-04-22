@@ -6,6 +6,9 @@ import { jsPDF } from "jspdf";
  * @returns {jsPDF} - The generated PDF document object
  */
 export const generateInvoicePDF = (invoice) => {
+  console.log("PDF Generation - Company Info:", invoice.company);
+  console.log("PDF Generation - Customer Info:", invoice.customerName);
+  console.log("PDF Generation - Signature:", invoice.signature);
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -41,10 +44,27 @@ export const generateInvoicePDF = (invoice) => {
   };
 
   // Convert number to words - simplified Indian numbering system
+  // Improved number to words conversion for Indian currency format
   const numberToWords = (num) => {
-    // This is a simple implementation - a more comprehensive solution would be needed for production
-    if (num === 0) return "Zero";
+    if (isNaN(num)) return "Zero";
 
+    // Handle decimal part separately
+    let decimal = "";
+    let numStr = num.toString();
+
+    if (numStr.includes(".")) {
+      const parts = numStr.split(".");
+      numStr = parts[0];
+      decimal = parts[1];
+
+      // Format decimal as paise if needed
+      if (decimal && decimal.length > 0) {
+        // Ensure we only use up to 2 decimal places
+        decimal = decimal.padEnd(2, "0").substring(0, 2);
+      }
+    }
+
+    // Arrays for number words
     const single = [
       "",
       "One",
@@ -56,8 +76,6 @@ export const generateInvoicePDF = (invoice) => {
       "Seven",
       "Eight",
       "Nine",
-    ];
-    const double = [
       "Ten",
       "Eleven",
       "Twelve",
@@ -81,50 +99,64 @@ export const generateInvoicePDF = (invoice) => {
       "Eighty",
       "Ninety",
     ];
-    const unitSize = ["", "Thousand", "Lakh", "Crore"];
 
-    let words = "";
-    let numStr = num.toString();
-    let isNegative = false;
+    // Function to convert 3-digit groups
+    const convertLessThanThousand = (n) => {
+      if (n === 0) return "";
 
-    if (numStr.charAt(0) === "-") {
-      isNegative = true;
-      numStr = numStr.slice(1);
-    }
-
-    // Handle decimals
-    let decimal = "";
-    if (numStr.includes(".")) {
-      const parts = numStr.split(".");
-      numStr = parts[0];
-      decimal = parts[1];
-      if (decimal) {
-        decimal =
-          " Point " +
-          decimal
-            .split("")
-            .map((d) => single[parseInt(d)])
-            .join(" ");
-      }
-    }
-
-    // Example simple implementation - needs more work for a full solution
-    if (parseFloat(numStr) < 100) {
-      if (parseFloat(numStr) < 10) {
-        words = single[parseFloat(numStr)];
-      } else if (parseFloat(numStr) < 20) {
-        words = double[parseFloat(numStr) - 10];
+      if (n < 20) {
+        return single[n] + " ";
+      } else if (n < 100) {
+        return tens[Math.floor(n / 10)] + " " + single[n % 10] + " ";
       } else {
-        words =
-          tens[Math.floor(parseFloat(numStr) / 10)] +
-          " " +
-          single[parseFloat(numStr) % 10];
+        return (
+          single[Math.floor(n / 100)] +
+          " Hundred " +
+          convertLessThanThousand(n % 100)
+        );
       }
-    } else {
-      words = "INR " + parseFloat(numStr).toFixed(2) + " Only"; // Simplified
+    };
+
+    // Indian numbering system: lakhs and crores
+    const indianNumbering = (n) => {
+      if (n === 0) return "Zero";
+
+      let words = "";
+
+      // Handle crores (10^7)
+      if (n >= 10000000) {
+        words += convertLessThanThousand(Math.floor(n / 10000000)) + "Crore ";
+        n %= 10000000;
+      }
+
+      // Handle lakhs (10^5)
+      if (n >= 100000) {
+        words += convertLessThanThousand(Math.floor(n / 100000)) + "Lakh ";
+        n %= 100000;
+      }
+
+      // Handle thousands
+      if (n >= 1000) {
+        words += convertLessThanThousand(Math.floor(n / 1000)) + "Thousand ";
+        n %= 1000;
+      }
+
+      // Handle remaining part
+      words += convertLessThanThousand(n);
+
+      return words.trim();
+    };
+
+    // Main conversion logic
+    let result = indianNumbering(parseInt(numStr, 10));
+
+    // Add paise part if present
+    if (decimal && decimal !== "00") {
+      const paiseInWords = indianNumbering(parseInt(decimal, 10));
+      result += " and " + paiseInWords + " Paise";
     }
 
-    return (isNegative ? "Negative " : "") + words.trim() + decimal;
+    return result + " Only";
   };
 
   // Function to calculate totals from items
@@ -200,59 +232,66 @@ export const generateInvoicePDF = (invoice) => {
         return "PNG";
     }
   }
+  // Update the logo and company info section
   if (invoice.company?.logo) {
-    const logoWidth = 30; // Adjust as needed
-    const logoHeight = 30; // Adjust as needed
+    const logoWidth = 25; // Slightly smaller logo
+    const logoHeight = 25;
     const logoX = margin + 5;
     const logoY = margin + 5;
 
     try {
-      // If logo is a URL or file path
+      // Add logo
       doc.addImage(
         invoice.company.logo,
-        getImageTypeFromPath(invoice.company.logo), // Helper function to determine image type
+        getImageTypeFromPath(invoice.company.logo),
         logoX,
         logoY,
         logoWidth,
         logoHeight
       );
 
-      // Start company text to the right of the logo
-      doc.setFontSize(10);
+      // Adjust text positioning to the right of the logo
+      const textX = logoX + logoWidth + 3;
+      const maxTextWidth = midX - textX - 5;
+
+      doc.setFontSize(9);
       doc.setFont(undefined, "bold");
-      doc.text(
-        invoice.company?.companyName || "Company Name",
-        logoX + logoWidth + 5,
-        margin + 10
-      );
+
+      // Split company name into multiple lines if needed
+      const companyName = invoice.company?.companyName || "Company Name";
+      const companyNameLines = doc.splitTextToSize(companyName, maxTextWidth);
+      doc.text(companyNameLines, textX, margin + 8);
+
+      // Calculate new Y position based on number of lines
+      let nextY = margin + 8 + companyNameLines.length * 4;
+
       doc.setFont(undefined, "normal");
-      doc.text(
-        invoice.company?.addressLine1 || "Address Line 1",
-        logoX + logoWidth + 5,
-        margin + 15
-      );
-      doc.text(
-        invoice.company?.addressLine2 || "Address Line 2",
-        logoX + logoWidth + 5,
-        margin + 20
-      );
-      doc.text(
-        invoice.company?.city || "City",
-        logoX + logoWidth + 5,
-        margin + 25
-      );
-      doc.text(
-        `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`,
-        logoX + logoWidth + 5,
-        margin + 30
-      );
-      doc.text(
-        `State Name: ${invoice.company?.state || "State"}, Code: ${
-          invoice.company?.stateCode || "Code"
-        }`,
-        logoX + logoWidth + 5,
-        margin + 35
-      );
+
+      // Apply similar approach to address lines
+      const address1 = invoice.company?.addressLine1 || "Address Line 1";
+      const address1Lines = doc.splitTextToSize(address1, maxTextWidth);
+      doc.text(address1Lines, textX, nextY);
+
+      nextY += address1Lines.length * 4;
+
+      const address2 = invoice.company?.addressLine2 || "Address Line 2";
+      const address2Lines = doc.splitTextToSize(address2, maxTextWidth);
+      doc.text(address2Lines, textX, nextY);
+
+      nextY += address2Lines.length * 4;
+
+      const cityText = invoice.company?.city || "City";
+      doc.text(cityText, textX, nextY);
+      nextY += 4;
+
+      const gstinText = `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`;
+      doc.text(gstinText, textX, nextY);
+      nextY += 4;
+
+      const stateText = `State Name: ${
+        invoice.company?.state || "State"
+      }, Code: ${invoice.company?.stateCode || "Code"}`;
+      doc.text(stateText, textX, nextY);
     } catch (error) {
       console.error("Error adding logo:", error);
       // Fallback to text-only if logo fails
@@ -264,38 +303,47 @@ export const generateInvoicePDF = (invoice) => {
   }
 
   // Function for default company text layout (without logo)
+  // Modify the defaultCompanyText function to better wrap text and adjust positioning
   function defaultCompanyText() {
-    doc.setFontSize(10);
+    doc.setFontSize(9); // Slightly smaller font
     doc.setFont(undefined, "bold");
-    doc.text(
-      invoice.company?.companyName || "Company Name",
-      margin + 5,
-      margin + 10
-    );
+
+    // Break company name into multiple lines if needed
+    const companyName = invoice.company?.companyName || "Company Name";
+    const maxWidth = midX - margin - 10; // Maximum width for company text
+
+    const companyNameLines = doc.splitTextToSize(companyName, maxWidth);
+    doc.text(companyNameLines, margin + 5, margin + 8);
+
+    // Calculate new Y position based on number of lines
+    let nextY = margin + 8 + companyNameLines.length * 4;
+
     doc.setFont(undefined, "normal");
-    doc.text(
-      invoice.company?.addressLine1 || "Address Line 1",
-      margin + 5,
-      margin + 15
-    );
-    doc.text(
-      invoice.company?.addressLine2 || "Address Line 2",
-      margin + 5,
-      margin + 20
-    );
-    doc.text(invoice.company?.city || "City", margin + 5, margin + 25);
-    doc.text(
-      `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`,
-      margin + 5,
-      margin + 30
-    );
-    doc.text(
-      `State Name: ${invoice.company?.state || "State"}, Code: ${
-        invoice.company?.stateCode || "Code"
-      }`,
-      margin + 5,
-      margin + 35
-    );
+    // Apply similar approach to address lines
+    const address1 = invoice.company?.addressLine1 || "Address Line 1";
+    const address1Lines = doc.splitTextToSize(address1, maxWidth);
+    doc.text(address1Lines, margin + 5, nextY);
+
+    nextY += address1Lines.length * 4;
+
+    const address2 = invoice.company?.addressLine2 || "Address Line 2";
+    const address2Lines = doc.splitTextToSize(address2, maxWidth);
+    doc.text(address2Lines, margin + 5, nextY);
+
+    nextY += address2Lines.length * 4;
+
+    const cityText = invoice.company?.city || "City";
+    doc.text(cityText, margin + 5, nextY);
+    nextY += 4;
+
+    const gstinText = `GSTIN/UIN: ${invoice.company?.gstin || "GSTIN"}`;
+    doc.text(gstinText, margin + 5, nextY);
+    nextY += 4;
+
+    const stateText = `State Name: ${
+      invoice.company?.state || "State"
+    }, Code: ${invoice.company?.stateCode || "Code"}`;
+    doc.text(stateText, margin + 5, nextY);
   }
 
   // Right side - Invoice details in table format
@@ -587,29 +635,33 @@ export const generateInvoicePDF = (invoice) => {
     currentX = margin;
 
     // Item details
-    doc.text(`${index + 1}`, currentX + 1, itemY + 5);
+    doc.text(String(index + 1), currentX + 1, itemY + 5);
     currentX += colWidths.slNo;
 
     // Item description - handle multiline if needed
     const description = item.details || item.name || `Item ${index + 1}`;
-    doc.text(description, currentX + 5, itemY + 5);
+    doc.text(String(description), currentX + 5, itemY + 5);
 
     // Add batch info if available
     if (item.batch) {
-      doc.text(`Batch: ${item.batch}`, currentX + 5, itemY + 10);
+      doc.text(
+        String(item.batch ? `Batch: ${item.batch}` : ""),
+        currentX + 5,
+        itemY + 10
+      );
     }
 
     currentX += colWidths.description;
-    doc.text(item.hsn || "", currentX + 5, itemY + 5);
+    doc.text(String(item.hsn || ""), currentX + 5, itemY + 5);
     currentX += colWidths.hsn;
-    doc.text(item.quantity || "0", currentX + 5, itemY + 5);
+    doc.text(String(item.quantity || "0"), currentX + 5, itemY + 5);
     currentX += colWidths.quantity;
-    doc.text(formatCurrency(item.rate || 0), currentX + 5, itemY + 5);
+    doc.text(String(formatCurrency(item.rate || 0)), currentX + 5, itemY + 5);
     currentX += colWidths.rate;
-    doc.text(item.per || "Nos", currentX + 3, itemY + 5);
+    doc.text(String(item.per || "Nos"), currentX + 3, itemY + 5);
     currentX += colWidths.per;
     doc.text(
-      formatCurrency(item.amount || item.quantity * item.rate || 0),
+      String(formatCurrency(item.amount || item.quantity * item.rate || 0)),
       currentX + 5,
       itemY + 5
     );
@@ -662,10 +714,19 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(formatCurrency(totals.grandTotal), currentX + 5, totalY);
 
     // Amount in words
+    // In the "Amount in words" section
     doc.setFontSize(8);
     doc.text("Amount Chargeable (in words)", margin + 5, totalY + 10);
     doc.setFont(undefined, "bold");
-    doc.text(numberToWords(totals.grandTotal), margin + 80, totalY + 10);
+
+    // Use the improved numberToWords function
+    const amountInWords = numberToWords(totals.grandTotal);
+    const amountLines = doc.splitTextToSize(
+      "INR " + amountInWords,
+      pageWidth - margin - 100
+    );
+    doc.text(amountLines, margin + 80, totalY + 10);
+
     doc.text("E & O.E", pageWidth - margin - 10, totalY + 10, {
       align: "right",
     });

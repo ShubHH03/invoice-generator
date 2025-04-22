@@ -425,6 +425,7 @@ const InvoiceForm = () => {
   };
   // Handle form submission
   const handleSubmit = async (isDraft = false) => {
+    // Step 1: Validate essential input data
     if (!selectedCompany) {
       alert("Please select a company before saving the invoice");
       return;
@@ -435,61 +436,130 @@ const InvoiceForm = () => {
       return;
     }
 
-    // Calculate tax amounts for display and database
-    const calculatedCgst = subtotal * 0.09;
-    const calculatedSgst = subtotal * 0.09;
-    const calculatedTotal = subtotal + calculatedCgst + calculatedSgst;
-
-    // Create the invoice object with proper field names to match the backend
-    const invoice = {
-      companyId: selectedCompany.id,
-      customerId: selectedCustomer.id,
-      invoiceNumber: invoiceNumber,
-      invoiceDate: invoiceDate,
-      dueDate: dueDate,
-      paymentTerms: paymentTerms,
-      incomeLedger: document.getElementById("incomeLedger").value,
-      items: items.map((item) => ({
-        id: item.id || 0,
-        description: item.description || item.name || "",
-        quantity: parseFloat(item.quantity) || 0,
-        rate: parseFloat(item.rate) || 0,
-        amount: parseFloat(item.amount) || 0,
-      })),
-      subtotal: subtotal,
-      cgstRate: 9,
-      sgstRate: 9,
-      cgstAmount: calculatedCgst,
-      sgstAmount: calculatedSgst,
-      totalAmount: calculatedTotal,
-      customerNotes: customerNotes,
-      termsAndConditions: termsAndConditions,
-      status: isDraft ? "draft" : "sent",
-      signature: signature, // Add the signature data
-    };
-
-    console.log("Saving invoice:", invoice);
-
     try {
-      // Save the invoice and its items to the database using the IPC channel
-      const result = await window.electron.addInvoice(invoice);
+      // Step 2: Calculate tax amounts and total
+      const calculatedCgst = subtotal * 0.09;
+      const calculatedSgst = subtotal * 0.09;
+      const calculatedTotal = subtotal + calculatedCgst + calculatedSgst;
+
+      // Step 3: Prepare invoice data for database
+      const invoiceForDB = {
+        companyId: selectedCompany.id,
+        customerId: selectedCustomer.id,
+        invoiceNumber: invoiceNumber,
+        invoiceDate: invoiceDate,
+        dueDate: dueDate,
+        paymentTerms: paymentTerms,
+        incomeLedger: document.getElementById("incomeLedger").value,
+        items: items.map((item) => ({
+          description: item.description || item.name || "",
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.amount) || 0,
+        })),
+        subtotal: subtotal,
+        cgstRate: 9,
+        sgstRate: 9,
+        cgstAmount: calculatedCgst,
+        sgstAmount: calculatedSgst,
+        totalAmount: calculatedTotal,
+        customerNotes: customerNotes,
+        termsAndConditions: termsAndConditions,
+        status: isDraft ? "draft" : "sent",
+        // Pass the signature data string if available
+        signature: signature || null,
+      };
+
+      console.log("Saving invoice:", invoiceForDB);
+
+      // Step 4: Save invoice to database
+      const result = await window.electron.addInvoice(invoiceForDB);
 
       if (!result.success) {
         throw new Error(result.error);
       }
 
-      // Set the saved invoice with the database ID included
-      setSavedInvoice({ ...invoice, id: result.data.id });
+      // Step 5: Set the saved invoice with the database ID included
+      setSavedInvoice({ ...invoiceForDB, id: result.data.id });
 
-      // Generate PDF
-      const doc = generateInvoicePDF(invoice);
+      // Step 6: Prepare properly formatted data for PDF generation
+      const invoiceForPDF = {
+        invoiceNumber: invoiceNumber || "SI-0001599",
+        invoiceDate: invoiceDate,
+        dueDate: dueDate,
+        customerNotes: customerNotes,
+        termsAndConditions: termsAndConditions,
+        cgstRate: 9,
+        sgstRate: 9,
+        cgstAmount: calculatedCgst,
+        sgstAmount: calculatedSgst,
+        totalAmount: calculatedTotal,
 
-      // Handle PDF generation success
+        // Step 7: Format company data with correct property names
+        company: {
+          companyName:
+            selectedCompany.companyName ||
+            selectedCompany.name ||
+            "Company Name",
+          addressLine1: selectedCompany.addressLine1 || "",
+          addressLine2: selectedCompany.addressLine2 || "",
+          city: selectedCompany.city || "",
+          state: selectedCompany.state || "",
+          email: selectedCompany.email || "",
+          contactNo: selectedCompany.contactNo || "",
+          gstin: selectedCompany.gstin || "",
+          stateCode: selectedCompany.stateCode || "",
+          // Use the base64 encoded logo directly from selectedCompany if available
+          logo: selectedCompany.logo || null,
+        },
+
+        // Step 8: Format customer data with correct property names
+        customer: {
+          name:
+            selectedCustomer.firstName && selectedCustomer.lastName
+              ? `${selectedCustomer.salutation || ""} ${
+                  selectedCustomer.firstName
+                } ${selectedCustomer.lastName}`.trim()
+              : selectedCustomer.companyName || "Customer Name",
+          addressLine1: selectedCustomer.billingAddressLine1 || "",
+          addressLine2: selectedCustomer.billingAddressLine2 || "",
+          city: selectedCustomer.billingCity || "",
+          state: selectedCustomer.billingState || "",
+          country: selectedCustomer.billingCountry || "",
+          email: selectedCustomer.billingEmail || "",
+          contactNo: selectedCustomer.billingContactNo || "",
+          gstin: selectedCustomer.gstin || "",
+          stateCode: selectedCustomer.stateCode || "",
+        },
+
+        // Step 9: Include signature for PDF generation
+        // Use provided signature or company signature from DB
+        signature: signature || selectedCompany.signature || null,
+
+        // Step 10: Format items for PDF generation
+        items: items.map((item) => ({
+          name: item.name || item.description || "Item",
+          details: item.description || "",
+          hsn: item.hsn || "",
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          per: item.per || "Nos",
+          amount: parseFloat(item.amount) || 0,
+          batch: item.batch || "",
+        })),
+      };
+
+      console.log("PDF invoice data:", invoiceForPDF);
+
+      // Step 11: Generate PDF
+      const doc = generateInvoicePDF(invoiceForPDF);
+
+      // Step 12: Create blob URL for PDF preview
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
 
-      // Show download dialog
+      // Step 13: Show appropriate UI components
       setShowDownloadDialog(true);
       setShowPdfPreview(false);
     } catch (error) {
@@ -497,7 +567,6 @@ const InvoiceForm = () => {
       alert(`There was an error saving the invoice: ${error.message}`);
     }
   };
-
   // Handle download
   const handleDownload = () => {
     if (pdfUrl && savedInvoice) {
@@ -1189,7 +1258,7 @@ const InvoiceForm = () => {
               </div>
             </div>
             {/* Signature Upload */}
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <Label htmlFor="signature" className="block mb-2">
                 Authorized Signature
               </Label>
@@ -1232,7 +1301,7 @@ const InvoiceForm = () => {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
           </form>
         </CardContent>
         <CardFooter className="flex gap-2 border-t pt-4 justify-end">

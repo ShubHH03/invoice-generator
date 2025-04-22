@@ -91,6 +91,7 @@ const InvoiceForm = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [companyInitials, setCompanyInitials] = useState("");
   const [invoiceSequence, setInvoiceSequence] = useState("0001");
+  const [companySignature, setCompanySignature] = useState(null);
   // Change this line
   const [invoiceNumber, setInvoiceNumber] = useState(""); // Remove the default "INV-000002"
 
@@ -337,7 +338,7 @@ const InvoiceForm = () => {
     );
 
     if (company) {
-      // Make sure we store the complete company object including the logo
+      // Make sure we store the complete company object
       setSelectedCompany(company);
 
       // Generate and set company initials
@@ -352,7 +353,9 @@ const InvoiceForm = () => {
         setPaymentTerms(company.defaultTerms);
       }
 
-      console.log("Selected company with logo:", company.logo_path);
+      console.log("Selected company:", company);
+      console.log("Logo available:", !!company.logo);
+      console.log("Logo path:", company.logoPath);
     }
   };
   const handleSequenceChange = (value) => {
@@ -421,51 +424,77 @@ const InvoiceForm = () => {
     // You might want to implement additional logic to add the item to the list
   };
   // Handle form submission
-  const handleSubmit = (isDraft = false) => {
+  const handleSubmit = async (isDraft = false) => {
     if (!selectedCompany) {
       alert("Please select a company before saving the invoice");
       return;
     }
 
-    // Create the invoice object with company data
+    if (!selectedCustomer) {
+      alert("Please select a customer before saving the invoice");
+      return;
+    }
+
+    // Calculate tax amounts for display and database
+    const calculatedCgst = subtotal * 0.09;
+    const calculatedSgst = subtotal * 0.09;
+    const calculatedTotal = subtotal + calculatedCgst + calculatedSgst;
+
+    // Create the invoice object with proper field names to match the backend
     const invoice = {
-      company: selectedCompany,
-      logo_path: selectedCompany.logo_path,
-      customerName,
-      invoiceNumber,
-      invoiceDate,
-      dueDate,
-      items,
-      subtotal,
-      total,
-      customerNotes,
-      termsAndConditions,
+      companyId: selectedCompany.id,
+      customerId: selectedCustomer.id,
+      invoiceNumber: invoiceNumber,
+      invoiceDate: invoiceDate,
+      dueDate: dueDate,
+      paymentTerms: paymentTerms,
+      incomeLedger: document.getElementById("incomeLedger").value,
+      items: items.map((item) => ({
+        id: item.id || 0,
+        description: item.description || item.name || "",
+        quantity: parseFloat(item.quantity) || 0,
+        rate: parseFloat(item.rate) || 0,
+        amount: parseFloat(item.amount) || 0,
+      })),
+      subtotal: subtotal,
+      cgstRate: 9,
+      sgstRate: 9,
+      cgstAmount: calculatedCgst,
+      sgstAmount: calculatedSgst,
+      totalAmount: calculatedTotal,
+      customerNotes: customerNotes,
+      termsAndConditions: termsAndConditions,
       status: isDraft ? "draft" : "sent",
+      signature: signature, // Add the signature data
     };
 
-    console.log("Saving invoice with company data:", invoice);
-
-    // Save the invoice (to backend in a real app)
-    setSavedInvoice(invoice);
+    console.log("Saving invoice:", invoice);
 
     try {
-      // Generate PDF with company data
+      // Save the invoice and its items to the database using the IPC channel
+      const result = await window.electron.addInvoice(invoice);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Set the saved invoice with the database ID included
+      setSavedInvoice({ ...invoice, id: result.data.id });
+
+      // Generate PDF
       const doc = generateInvoicePDF(invoice);
 
-      // Test that the PDF is valid by forcing a download immediately
+      // Handle PDF generation success
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
 
-      // Log for debugging
-      console.log("PDF URL created:", url);
-
       // Show download dialog
       setShowDownloadDialog(true);
-      setShowPdfPreview(false); // Reset initially
+      setShowPdfPreview(false);
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("There was an error generating the PDF. Please try again.");
+      console.error("Error saving invoice:", error);
+      alert(`There was an error saving the invoice: ${error.message}`);
     }
   };
 

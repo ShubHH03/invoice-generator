@@ -111,7 +111,7 @@ const InvoiceForm = () => {
           // Check if each company has necessary fields
           const validCompanies = companiesData.map((company) => {
             // Log to see what fields are available
-            console.log("Company fields:", Object.keys(company));
+            // console.log("Company fields:", Object.keys(company));
             return company;
           });
 
@@ -149,6 +149,7 @@ const InvoiceForm = () => {
             description: item.description || "",
             unit: item.unit || "",
           }));
+          console.log("Formatted items:", formattedItems);
 
           setDbItems(formattedItems);
           // Replace the static itemsList with the database items
@@ -200,18 +201,10 @@ const InvoiceForm = () => {
 
   // State for invoice items
   const [items, setItems] = useState([
-    { id: 1, details: "", quantity: "1.00", rate: "0.00", amount: "0.00" },
+    { id: "", details: "", quantity: "1.00", rate: "0.00", amount: "0.00" },
   ]);
 
-  const [itemsList, setItemsList] = useState([
-    { id: 1, name: "Item 1", rate: "100.00" },
-    { id: 2, name: "Item 2", rate: "200.00" },
-    { id: 3, name: "Item 3", rate: "300.00" },
-    { id: 4, name: "Item 4", rate: "400.00" },
-    { id: 5, name: "Item 5", rate: "500.00" },
-    { id: 6, name: "Item 6", rate: "600.00" },
-    { id: 7, name: "Item 7", rate: "700.00" },
-  ]);
+  const [itemsList, setItemsList] = useState();
 
   // State for calculations
   const [subtotal, setSubtotal] = useState(0);
@@ -375,6 +368,7 @@ const InvoiceForm = () => {
         if (item.id === rowId) {
           return {
             ...item,
+            id: selectedItem.id,
             details: selectedItem.name,
             rate: selectedItem.rate || "0.00",
             amount: (
@@ -386,6 +380,7 @@ const InvoiceForm = () => {
         return item;
       });
 
+      console.log("Updated items:", updatedItems);
       setItems(updatedItems);
 
       // Close this specific item's dropdown
@@ -442,6 +437,8 @@ const InvoiceForm = () => {
       const calculatedSgst = subtotal * 0.09;
       const calculatedTotal = subtotal + calculatedCgst + calculatedSgst;
 
+      console.log("items max", items)
+      console.log("iiitem", itemsList)
       // Step 3: Prepare invoice data for database
       const invoiceForDB = {
         companyId: selectedCompany.id,
@@ -452,7 +449,8 @@ const InvoiceForm = () => {
         paymentTerms: paymentTerms,
         incomeLedger: document.getElementById("incomeLedger").value,
         items: items.map((item) => ({
-          description: item.description || item.name || "",
+          id: item.id,
+          details: item.details || "",
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
           amount: parseFloat(item.amount) || 0,
@@ -538,14 +536,13 @@ const InvoiceForm = () => {
 
         // Step 10: Format items for PDF generation
         items: items.map((item) => ({
-          name: item.name || item.description || "Item",
+          name: item.name || "Item",
           details: item.description || "",
           hsn: item.hsn || "",
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
           per: item.per || "Nos",
           amount: parseFloat(item.amount) || 0,
-          batch: item.batch || "",
         })),
       };
 

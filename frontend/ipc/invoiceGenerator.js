@@ -67,9 +67,36 @@ function registerInvoiceGeneratorIpc() {
         })
         .returning();
 
-      // Now handle the invoice items if needed
-      // Note: This would require an additional table for invoice items
-      // that's not shown in the schema provided
+        console.log("max");
+        const invoiceId = insertedInvoice[0].id;
+        console.log("Inserted invoice ID:", invoiceId);
+
+        // Process invoice items if they exist
+        if (
+          invoiceData.items &&
+          Array.isArray(invoiceData.items) &&
+          invoiceData.items.length > 0
+        ) {
+          // Transform items to match the database schema
+          console.log("Items shubh:", invoiceData.items);
+          const itemsToInsert = invoiceData.items.map((item) => ({
+            invoiceId: invoiceId,
+            itemId: item.id || 0, // If new item, use 0 or null as appropriate
+            itemDetails: item.details || "",
+            quantity: parseFloat(item.quantity) || 0,
+            rate: parseFloat(item.rate) || 0,
+            amount: parseFloat(item.amount) || 0,
+          }));
+
+          console.log("Items to insert:", itemsToInsert);
+          // Insert all items in a batch
+          await db.insert(invoiceItems).values(itemsToInsert);
+
+          console.log(
+            `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
+          );
+        }
+
 
       console.log("Invoice created successfully:", insertedInvoice);
 
@@ -133,92 +160,92 @@ function registerInvoiceGeneratorIpc() {
   });
 
   // Update an invoice
-  ipcMain.handle("invoice:update", async (event, { id, ...invoiceData }) => {
-    try {
-      if (!id) {
-        return {
-          success: false,
-          error: "Invoice ID is required",
-        };
-      }
+  // ipcMain.handle("invoice:update", async (event, { id, ...invoiceData }) => {
+  //   try {
+  //     if (!id) {
+  //       return {
+  //         success: false,
+  //         error: "Invoice ID is required",
+  //       };
+  //     }
 
-      // Prepare update data with the same transformations as in create
-      const updateData = {};
+  //     // Prepare update data with the same transformations as in create
+  //     const updateData = {};
 
-      if (invoiceData.invoiceNumber)
-        updateData.invoiceNo = invoiceData.invoiceNumber;
+  //     if (invoiceData.invoiceNumber)
+  //       updateData.invoiceNo = invoiceData.invoiceNumber;
 
-      if (invoiceData.invoiceDate) {
-        updateData.invoiceDate = new Date(
-          invoiceData.invoiceDate
-        ).toISOString();
-      }
+  //     if (invoiceData.invoiceDate) {
+  //       updateData.invoiceDate = new Date(
+  //         invoiceData.invoiceDate
+  //       ).toISOString();
+  //     }
 
-      if (invoiceData.dueDate) {
-        updateData.dueDate = new Date(invoiceData.dueDate).toISOString();
-      }
+  //     if (invoiceData.dueDate) {
+  //       updateData.dueDate = new Date(invoiceData.dueDate).toISOString();
+  //     }
 
-      if (invoiceData.paymentTerms !== undefined)
-        updateData.terms = invoiceData.paymentTerms;
-      if (invoiceData.incomeLedger !== undefined)
-        updateData.ledger = invoiceData.incomeLedger;
-      if (invoiceData.customerNotes !== undefined)
-        updateData.narration = invoiceData.customerNotes;
-      if (invoiceData.termsAndConditions !== undefined)
-        updateData.termsAndConditions = invoiceData.termsAndConditions;
+  //     if (invoiceData.paymentTerms !== undefined)
+  //       updateData.terms = invoiceData.paymentTerms;
+  //     if (invoiceData.incomeLedger !== undefined)
+  //       updateData.ledger = invoiceData.incomeLedger;
+  //     if (invoiceData.customerNotes !== undefined)
+  //       updateData.narration = invoiceData.customerNotes;
+  //     if (invoiceData.termsAndConditions !== undefined)
+  //       updateData.termsAndConditions = invoiceData.termsAndConditions;
 
-      // Recalculate totals if needed
-      if (invoiceData.subtotal !== undefined) {
-        const subtotal = parseFloat(invoiceData.subtotal) || 0;
-        const cgstRate = invoiceData.cgstRate || 9;
-        const sgstRate = invoiceData.sgstRate || 9;
-        const cgstAmount = subtotal * (cgstRate / 100);
-        const sgstAmount = subtotal * (sgstRate / 100);
-        const totalAmount = subtotal + cgstAmount + sgstAmount;
+  //     // Recalculate totals if needed
+  //     if (invoiceData.subtotal !== undefined) {
+  //       const subtotal = parseFloat(invoiceData.subtotal) || 0;
+  //       const cgstRate = invoiceData.cgstRate || 9;
+  //       const sgstRate = invoiceData.sgstRate || 9;
+  //       const cgstAmount = subtotal * (cgstRate / 100);
+  //       const sgstAmount = subtotal * (sgstRate / 100);
+  //       const totalAmount = subtotal + cgstAmount + sgstAmount;
 
-        updateData.subtotal = subtotal;
-        updateData.cgstRate = cgstRate;
-        updateData.sgstRate = sgstRate;
-        updateData.cgstAmount = cgstAmount;
-        updateData.sgstAmount = sgstAmount;
-        updateData.totalAmount = totalAmount;
-      }
+  //       updateData.subtotal = subtotal;
+  //       updateData.cgstRate = cgstRate;
+  //       updateData.sgstRate = sgstRate;
+  //       updateData.cgstAmount = cgstAmount;
+  //       updateData.sgstAmount = sgstAmount;
+  //       updateData.totalAmount = totalAmount;
+  //     }
 
-      const updatedInvoice = await db
-        .update(invoices)
-        .set(updateData)
-        .where(invoices.id.eq(id))
-        .returning();
+  //     const updatedInvoice = await db
+  //       .update(invoices)
+  //       .set(updateData)
+  //       .where(invoices.id.eq(id))
+  //       .returning();
 
-      return {
-        success: true,
-        invoice: updatedInvoice[0],
-      };
-    } catch (error) {
-      console.error(`Error updating invoice with ID ${id}:`, error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+  //     return {
+  //       success: true,
+  //       invoice: updatedInvoice[0],
+  //     };
+  //   } catch (error) {
+  //     console.error(`Error updating invoice with ID ${id}:`, error);
+  //     return {
+  //       success: false,
+  //       error: error.message,
+  //     };
+  //   }
+  // });
 
   // Delete an invoice
-  ipcMain.handle("invoice:delete", async (event, id) => {
-    try {
-      await db.delete(invoices).where(invoices.id.eq(id));
+  // ipcMain.handle("invoice:delete", async (event, id) => {
+  //   try {
+  //     await db.delete(invoices).where(invoices.id.eq(id));
 
-      return {
-        success: true,
-      };
-    } catch (error) {
-      console.error(`Error deleting invoice with ID ${id}:`, error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+  //     return {
+  //       success: true,
+  //     };
+  //   } catch (error) {
+  //     console.error(`Error deleting invoice with ID ${id}:`, error);
+  //     return {
+  //       success: false,
+  //       error: error.message,
+  //     };
+  //   }
+  // });
 }
 
 function registerInvoiceItemsIpc(ipcMain) {
@@ -245,7 +272,7 @@ function registerInvoiceItemsIpc(ipcMain) {
       const itemsToInsert = items.map((item) => ({
         invoiceId: invoiceId,
         itemId: item.id || 0, // If new item, use 0 or null as appropriate
-        itemDetails: item.description || item.name || "Unknown Item",
+        itemDetails: item.details || "",
         quantity: parseFloat(item.quantity) || 0,
         rate: parseFloat(item.rate) || 0,
         amount: parseFloat(item.amount) || 0,

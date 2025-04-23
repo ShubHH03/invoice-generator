@@ -92,6 +92,7 @@ const InvoiceForm = () => {
   const [companyInitials, setCompanyInitials] = useState("");
   const [invoiceSequence, setInvoiceSequence] = useState("0001");
   const [companySignature, setCompanySignature] = useState(null);
+  const [companyInitialsMap, setCompanyInitialsMap] = useState({});
   // Change this line
   const [invoiceNumber, setInvoiceNumber] = useState(""); // Remove the default "INV-000002"
 
@@ -148,6 +149,7 @@ const InvoiceForm = () => {
             rate: item.sellingPrice?.toString() || "0.00",
             description: item.description || "",
             unit: item.unit || "",
+            hsn: item.hsn || "", // Add this line to include HSN code
           }));
           console.log("Formatted items:", formattedItems);
 
@@ -199,9 +201,96 @@ const InvoiceForm = () => {
     }
   }, [companyInitials, invoiceSequence]);
 
+  // Load company initials from local storage on component mount
+  useEffect(() => {
+    const savedInitials = localStorage.getItem("companyInitialsMap");
+    if (savedInitials) {
+      try {
+        setCompanyInitialsMap(JSON.parse(savedInitials));
+      } catch (e) {
+        console.error("Error loading saved company initials", e);
+      }
+    }
+  }, []);
+
+  // Save company initials to local storage when they change
+  useEffect(() => {
+    if (Object.keys(companyInitialsMap).length > 0) {
+      localStorage.setItem(
+        "companyInitialsMap",
+        JSON.stringify(companyInitialsMap)
+      );
+    }
+  }, [companyInitialsMap]);
+  useEffect(() => {
+    // Fetch all invoices to find the latest invoice number
+    const fetchLatestInvoiceNumber = async () => {
+      try {
+        const response = await window.electron.getAllInvoices();
+
+        if (
+          response.success &&
+          response.invoices &&
+          response.invoices.length > 0
+        ) {
+          // Sort invoices by ID in descending order to get the latest one
+          const sortedInvoices = [...response.invoices].sort(
+            (a, b) => b.id - a.id
+          );
+          const latestInvoice = sortedInvoices[0];
+
+          console.log("Latest invoice:", latestInvoice);
+
+          if (latestInvoice && latestInvoice.invoiceNo) {
+            // Extract the sequence number part from the latest invoice number
+            const parts = latestInvoice.invoiceNo.split("-");
+            if (parts.length === 2) {
+              const latestInitials = parts[0];
+              const latestSequence = parts[1];
+
+              // Increment the sequence number
+              const sequenceNumber = parseInt(latestSequence, 10);
+              if (!isNaN(sequenceNumber)) {
+                const newSequence = (sequenceNumber + 1)
+                  .toString()
+                  .padStart(4, "0");
+                setInvoiceSequence(newSequence);
+
+                // If company is already selected, update the full invoice number
+                if (companyInitials) {
+                  setInvoiceNumber(`${companyInitials}-${newSequence}`);
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching latest invoice number:", error);
+      }
+    };
+
+    fetchLatestInvoiceNumber();
+  }, [companyInitials]);
+
+  useEffect(() => {
+    // Only run this when a company is selected
+    if (selectedCompany && selectedCompany.id) {
+      // Fetch company-specific latest invoice
+      fetchCompanyLatestInvoice(selectedCompany.id, companyInitials);
+    }
+  }, [selectedCompany]); // This should run when selectedCompany changes
+
+  // Add companyInitials as dependency to update when company changes
   // State for invoice items
   const [items, setItems] = useState([
-    { id: "", details: "", quantity: "1.00", rate: "0.00", amount: "0.00" },
+    {
+      id: 1,
+      details: "",
+      quantity: "1.00",
+      rate: "0.00",
+      amount: "0.00",
+      hsn: "", // Add this line
+    },
   ]);
 
   const [itemsList, setItemsList] = useState();
@@ -240,8 +329,19 @@ const InvoiceForm = () => {
     setPaymentTerms(value);
   };
 
-  // Cleanup effect for PDF URL
+  // Add this cleanup useEffect
   useEffect(() => {
+    // This will clean up the blob URL when component unmounts
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, []);
+
+  // Modify your existing useEffect for better cleanup
+  useEffect(() => {
+    // Cleanup function to revoke the URL when it changes
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -331,24 +431,87 @@ const InvoiceForm = () => {
     );
 
     if (company) {
-      // Make sure we store the complete company object
       setSelectedCompany(company);
 
-      // Generate and set company initials
-      const initials = generateCompanyInitials(company.companyName);
-      setCompanyInitials(initials);
-
-      // Update invoice number format
-      setInvoiceNumber(`${initials}-${invoiceSequence}`);
-
-      // Update other fields if needed
-      if (company.defaultTerms) {
-        setPaymentTerms(company.defaultTerms);
+      // Check if we already have custom initials for this company
+      let initials;
+      if (companyInitialsMap[company.id]) {
+        initials = companyInitialsMap[company.id];
+      } else {
+        // Generate default initials
+        initials = generateCompanyInitials(company.companyName);
+        // Store the generated initials
+        setCompanyInitialsMap((prev) => ({ ...prev, [company.id]: initials }));
       }
 
-      console.log("Selected company:", company);
-      console.log("Logo available:", !!company.logo);
-      console.log("Logo path:", company.logoPath);
+      setCompanyInitials(initials);
+
+      // Get company-specific latest invoice number
+      fetchCompanyLatestInvoice(company.id, initials);
+
+      // Other company-related updates...
+    }
+  };
+  const fetchCompanyLatestInvoice = async (companyId, initials) => {
+    try {
+      const response = await window.electron.getAllInvoices();
+
+      if (
+        response.success &&
+        response.invoices &&
+        response.invoices.length > 0
+      ) {
+        // Filter invoices for this specific company and sort by ID
+        const companyInvoices = response.invoices
+          .filter((invoice) => invoice.companyId === companyId)
+          .sort((a, b) => b.id - a.id);
+
+        if (companyInvoices.length > 0) {
+          const latestInvoice = companyInvoices[0];
+
+          if (latestInvoice && latestInvoice.invoiceNo) {
+            // Extract the sequence number part from the latest invoice number
+            const parts = latestInvoice.invoiceNo.split("-");
+            if (parts.length === 2) {
+              const latestSequence = parts[1];
+              const sequenceNumber = parseInt(latestSequence, 10);
+
+              if (!isNaN(sequenceNumber)) {
+                const newSequence = (sequenceNumber + 1)
+                  .toString()
+                  .padStart(4, "0");
+                setInvoiceSequence(newSequence);
+                setInvoiceNumber(`${initials}-${newSequence}`);
+                return;
+              }
+            }
+          }
+        }
+
+        // If no invoices found for this company or invalid format, start from 0001
+        setInvoiceSequence("0001");
+        setInvoiceNumber(`${initials}-0001`);
+      }
+    } catch (error) {
+      console.error("Error fetching company invoices:", error);
+      // Default to 0001 if there's an error
+      setInvoiceSequence("0001");
+      setInvoiceNumber(`${initials}-0001`);
+    }
+  };
+
+  // Add function to update company initials
+  const updateCompanyInitials = (newInitials) => {
+    if (selectedCompany) {
+      // Update the map
+      setCompanyInitialsMap((prev) => ({
+        ...prev,
+        [selectedCompany.id]: newInitials,
+      }));
+      // Update current initials
+      setCompanyInitials(newInitials);
+      // Update invoice number
+      setInvoiceNumber(`${newInitials}-${invoiceSequence}`);
     }
   };
   const handleSequenceChange = (value) => {
@@ -371,6 +534,7 @@ const InvoiceForm = () => {
             id: selectedItem.id,
             details: selectedItem.name,
             rate: selectedItem.rate || "0.00",
+            hsn: selectedItem.hsn || "", // Add HSN code from database
             amount: (
               (parseFloat(item.quantity) || 1) *
               (parseFloat(selectedItem.rate) || 0)
@@ -437,8 +601,8 @@ const InvoiceForm = () => {
       const calculatedSgst = subtotal * 0.09;
       const calculatedTotal = subtotal + calculatedCgst + calculatedSgst;
 
-      console.log("items max", items)
-      console.log("iiitem", itemsList)
+      console.log("items max", items);
+      console.log("iiitem", itemsList);
       // Step 3: Prepare invoice data for database
       const invoiceForDB = {
         companyId: selectedCompany.id,
@@ -476,7 +640,9 @@ const InvoiceForm = () => {
       if (!result.success) {
         throw new Error(result.error);
       }
-
+      const currentSequence = parseInt(invoiceSequence, 10);
+      const nextSequence = (currentSequence + 1).toString().padStart(4, "0");
+      setInvoiceSequence(nextSequence);
       // Step 5: Set the saved invoice with the database ID included
       setSavedInvoice({ ...invoiceForDB, id: result.data.id });
 
@@ -548,15 +714,18 @@ const InvoiceForm = () => {
 
       console.log("PDF invoice data:", invoiceForPDF);
 
-      // Step 11: Generate PDF
       const doc = generateInvoicePDF(invoiceForPDF);
 
-      // Step 12: Create blob URL for PDF preview
+      // Step 12: Create blob URL for PDF preview - MODIFIED
       const pdfBlob = doc.output("blob");
+      // Revoke any existing URL to avoid memory leaks
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
 
-      // Step 13: Show appropriate UI components
+      // Step 13: Show download dialog but don't show preview yet
       setShowDownloadDialog(true);
       setShowPdfPreview(false);
     } catch (error) {
@@ -574,17 +743,44 @@ const InvoiceForm = () => {
       link.click();
       document.body.removeChild(link);
 
-      // Show PDF preview after download
-      setShowPdfPreview(true);
-
-      // Keep the dialog open, but modify to show preview option
-      // setShowDownloadDialog(false);
+      // Don't automatically show preview after download
+      // The user can click "Quick View" if they want to see it
     }
+  };
+
+  const resetForm = () => {
+    // Reset form fields but keep company initials map
+    setItems([
+      {
+        id: 1,
+        details: "",
+        quantity: "1.00",
+        rate: "0.00",
+        amount: "0.00",
+        hsn: "",
+      },
+    ]);
+    setCustomerName("");
+    setSelectedCustomer(null);
+    setInvoiceDate(new Date());
+    setDueDate(new Date());
+    setCustomerNotes("Thanks for your business.");
+    setTermsAndConditions("");
+    setSignature(null);
+    // Don't reset company initials as they should persist
   };
 
   // Handle cancel
   const handleCancel = () => {
-    console.log("Cancelled");
+    resetForm();
+    console.log("Form reset and cancelled");
+  };
+
+  // Add a close handler for the download dialog
+  const handleCloseDownloadDialog = () => {
+    setShowDownloadDialog(false);
+    resetForm();
+    console.log("Invoice saved and form reset");
   };
 
   // Add this after your useState declarations
@@ -596,7 +792,7 @@ const InvoiceForm = () => {
       .split(/\s+/)
       .map((word) => word[0]?.toUpperCase() || "")
       .join("")
-      .substring(0, 3); // Limit to 3 characters
+      .substring(0, 6); // Changed from 3 to 6 to allow up to 6 characters
   };
 
   return (
@@ -822,14 +1018,28 @@ const InvoiceForm = () => {
               </div>
 
               {/* Invoice Number */}
+              {/* Invoice Number */}
               <div className="flex items-start gap-4">
                 <Label htmlFor="invoiceNumber" className="w-32 pt-2">
                   Invoice No.
                 </Label>
                 <div className="flex-1 relative flex">
-                  {/* Company Initials (static part) */}
-                  <div className="flex-shrink-0 bg-gray-100 border border-r-0 rounded-l-md flex items-center px-3">
-                    <span className="text-gray-700">{companyInitials}-</span>
+                  {/* Company Initials (editable part) */}
+                  <div className="flex-shrink-0 border border-r-0 rounded-l-md flex items-center">
+                    <Input
+                      className="w-20 rounded-r-none border-r-0 text-center" // Widened from w-16 to w-20
+                      value={companyInitials}
+                      onChange={(e) =>
+                        updateCompanyInitials(
+                          e.target.value.toUpperCase().slice(0, 6) // Changed from 3 to 6
+                        )
+                      }
+                      maxLength={6} // Changed from 3 to 6
+                    />
+                  </div>
+                  {/* Separator */}
+                  <div className="flex-shrink-0 bg-gray-100 border border-x-0 flex items-center px-1">
+                    <span className="text-gray-700">-</span>
                   </div>
                   {/* Sequence Number (editable part) */}
                   <Input
@@ -995,7 +1205,11 @@ const InvoiceForm = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="w-[50%]">ITEM DETAILS</TableHead>
+                      <TableHead className="w-[40%]">ITEM DETAILS</TableHead>
+                      <TableHead className="text-center">
+                        HSN/SAC
+                      </TableHead>{" "}
+                      {/* New column */}
                       <TableHead className="text-center">QUANTITY</TableHead>
                       <TableHead className="text-center">RATE</TableHead>
                       <TableHead className="text-center">AMOUNT</TableHead>
@@ -1094,6 +1308,22 @@ const InvoiceForm = () => {
                           onOpenChange={setItemFormOpen}
                           onSave={handleSaveItem}
                         />
+                        <TableCell className="text-center">
+                          <Input
+                            value={item.hsn || ""}
+                            className="text-center"
+                            onChange={(e) => {
+                              const updatedItems = items.map((i) => {
+                                if (i.id === item.id) {
+                                  return { ...i, hsn: e.target.value };
+                                }
+                                return i;
+                              });
+                              setItems(updatedItems);
+                            }}
+                            placeholder="HSN/SAC"
+                          />
+                        </TableCell>
 
                         <TableCell className="text-center">
                           <Input
@@ -1311,7 +1541,10 @@ const InvoiceForm = () => {
         {/* Download Invoice Dialog */}
         <AlertDialog
           open={showDownloadDialog}
-          onOpenChange={setShowDownloadDialog}
+          onOpenChange={(open) => {
+            if (!open) resetForm(); // Reset form when closing dialog
+            setShowDownloadDialog(open);
+          }}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -1325,7 +1558,14 @@ const InvoiceForm = () => {
               <AlertDialogCancel>Close</AlertDialogCancel>
               <Button
                 variant="outline"
-                onClick={() => setShowPdfPreview(true)}
+                onClick={() => {
+                  // Ensure PDF URL exists before showing preview
+                  if (pdfUrl) {
+                    setShowPdfPreview(true);
+                  } else {
+                    alert("PDF preview is not ready yet. Please try again.");
+                  }
+                }}
                 className="flex items-center gap-2"
               >
                 <Camera className="h-4 w-4" />
@@ -1357,12 +1597,22 @@ const InvoiceForm = () => {
             </div>
           </AlertDialogHeader>
           <div className="flex-1 min-h-[70vh] bg-gray-100 overflow-auto">
-            {pdfUrl && (
+            {pdfUrl ? (
               <iframe
                 src={pdfUrl}
                 className="w-full h-full border-0"
                 title="Invoice Preview"
+                key={pdfUrl} // Add key to force re-render when URL changes
+                sandbox="allow-same-origin allow-scripts"
+                onLoad={() => console.log("PDF loaded in iframe")}
+                onError={(e) =>
+                  console.error("Error loading PDF in iframe:", e)
+                }
               />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p>Loading preview...</p>
+              </div>
             )}
           </div>
           <AlertDialogFooter className="p-4 border-t">

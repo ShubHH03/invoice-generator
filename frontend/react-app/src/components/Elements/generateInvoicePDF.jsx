@@ -1,10 +1,5 @@
 import { jsPDF } from "jspdf";
 
-/**
- * Generate an invoice PDF document based on provided invoice data
- * @param {Object} invoice - Invoice data object containing company, customer, items, and other details
- * @returns {jsPDF} - The generated PDF document object
- */
 export const generateInvoicePDF = (invoice) => {
   console.log("PDF Generation - Company Info:", invoice.company);
   console.log("PDF Generation - Customer Info:", invoice.customerName);
@@ -507,45 +502,50 @@ export const generateInvoicePDF = (invoice) => {
     amount: 25,
   };
 
-  // Table header
-  let currentX = margin;
-  doc.setFillColor(240, 240, 240);
+  // Function to draw table header - we'll need this for each page
+  const drawTableHeader = (yPosition) => {
+    let headerX = margin;
+    doc.setFillColor(240, 240, 240);
 
-  // Draw table header cells
-  doc.rect(currentX, tableY, colWidths.slNo, tableHeaderHeight, "S");
-  currentX += colWidths.slNo;
-  doc.rect(currentX, tableY, colWidths.description, tableHeaderHeight, "S");
-  currentX += colWidths.description;
-  doc.rect(currentX, tableY, colWidths.hsn, tableHeaderHeight, "S");
-  currentX += colWidths.hsn;
-  doc.rect(currentX, tableY, colWidths.quantity, tableHeaderHeight, "S");
-  currentX += colWidths.quantity;
-  doc.rect(currentX, tableY, colWidths.rate, tableHeaderHeight, "S");
-  currentX += colWidths.rate;
-  doc.rect(currentX, tableY, colWidths.per, tableHeaderHeight, "S");
-  currentX += colWidths.per;
-  doc.rect(currentX, tableY, colWidths.amount, tableHeaderHeight, "S");
+    // Draw table header cells
+    doc.rect(headerX, yPosition, colWidths.slNo, tableHeaderHeight, "S");
+    headerX += colWidths.slNo;
+    doc.rect(headerX, yPosition, colWidths.description, tableHeaderHeight, "S");
+    headerX += colWidths.description;
+    doc.rect(headerX, yPosition, colWidths.hsn, tableHeaderHeight, "S");
+    headerX += colWidths.hsn;
+    doc.rect(headerX, yPosition, colWidths.quantity, tableHeaderHeight, "S");
+    headerX += colWidths.quantity;
+    doc.rect(headerX, yPosition, colWidths.rate, tableHeaderHeight, "S");
+    headerX += colWidths.rate;
+    doc.rect(headerX, yPosition, colWidths.per, tableHeaderHeight, "S");
+    headerX += colWidths.per;
+    doc.rect(headerX, yPosition, colWidths.amount, tableHeaderHeight, "S");
 
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
 
-  // Draw header text
-  currentX = margin;
-  doc.text("Sl", currentX + 1, tableY + 6);
-  currentX += colWidths.slNo;
-  doc.text("Particulars", currentX + 20, tableY + 6);
-  currentX += colWidths.description;
-  doc.text("HSN/SAC", currentX + 5, tableY + 6);
-  currentX += colWidths.hsn;
-  doc.text("Qty", currentX + 5, tableY + 6);
-  currentX += colWidths.quantity;
-  doc.text("Rate", currentX + 5, tableY + 6);
-  currentX += colWidths.rate;
-  doc.text("Per", currentX + 3, tableY + 6);
-  currentX += colWidths.per;
-  doc.text("Amount", currentX + 5, tableY + 6);
+    // Draw header text
+    headerX = margin;
+    doc.text("Sl", headerX + 1, yPosition + 6);
+    headerX += colWidths.slNo;
+    doc.text("Particulars", headerX + 20, yPosition + 6);
+    headerX += colWidths.description;
+    doc.text("HSN/SAC", headerX + 5, yPosition + 6);
+    headerX += colWidths.hsn;
+    doc.text("Qty", headerX + 5, yPosition + 6);
+    headerX += colWidths.quantity;
+    doc.text("Rate", headerX + 5, yPosition + 6);
+    headerX += colWidths.rate;
+    doc.text("Per", headerX + 3, yPosition + 6);
+    headerX += colWidths.per;
+    doc.text("Amount", headerX + 5, yPosition + 6);
 
-  doc.setFont(undefined, "normal");
+    doc.setFont(undefined, "normal");
+  };
+
+  // Draw the initial table header
+  drawTableHeader(tableY);
 
   // Table rows for items
   let itemY = tableY + tableHeaderHeight;
@@ -570,44 +570,7 @@ export const generateInvoicePDF = (invoice) => {
       itemY = margin + tableHeaderHeight;
 
       // Redraw table header on new page
-      let headerX = margin;
-      doc.setFillColor(240, 240, 240);
-
-      // Draw table header cells
-      doc.rect(headerX, margin, colWidths.slNo, tableHeaderHeight, "S");
-      headerX += colWidths.slNo;
-      doc.rect(headerX, margin, colWidths.description, tableHeaderHeight, "S");
-      headerX += colWidths.description;
-      doc.rect(headerX, margin, colWidths.hsn, tableHeaderHeight, "S");
-      headerX += colWidths.hsn;
-      doc.rect(headerX, margin, colWidths.quantity, tableHeaderHeight, "S");
-      headerX += colWidths.quantity;
-      doc.rect(headerX, margin, colWidths.rate, tableHeaderHeight, "S");
-      headerX += colWidths.rate;
-      doc.rect(headerX, margin, colWidths.per, tableHeaderHeight, "S");
-      headerX += colWidths.per;
-      doc.rect(headerX, margin, colWidths.amount, tableHeaderHeight, "S");
-
-      doc.setFontSize(8);
-      doc.setFont(undefined, "bold");
-
-      // Draw header text
-      headerX = margin;
-      doc.text("Sl", headerX + 1, margin + 6);
-      headerX += colWidths.slNo;
-      doc.text("Particulars", headerX + 20, margin + 6);
-      headerX += colWidths.description;
-      doc.text("HSN/SAC", headerX + 5, margin + 6);
-      headerX += colWidths.hsn;
-      doc.text("Qty", headerX + 5, margin + 6);
-      headerX += colWidths.quantity;
-      doc.text("Rate", headerX + 5, margin + 6);
-      headerX += colWidths.rate;
-      doc.text("Per", headerX + 3, margin + 6);
-      headerX += colWidths.per;
-      doc.text("Amount", headerX + 5, margin + 6);
-
-      doc.setFont(undefined, "normal");
+      drawTableHeader(margin);
     }
 
     let currentX = margin;
@@ -668,11 +631,29 @@ export const generateInvoicePDF = (invoice) => {
 
     itemY += itemHeight;
   });
+
   // Only add the footer elements on the last page
   // Check if we're on the last page before drawing summary content
   if (currentPage === Math.ceil(itemsToDisplay.length / itemsPerPage)) {
+    // Get the current Y position after drawing all items
+    // This will be different based on how many items are on the last page
+    const currentLastPageItems =
+      itemsToDisplay.length % itemsPerPage || itemsPerPage;
+    const lastPageItemsHeight = currentLastPageItems * itemHeight;
+
+    // For the last page, when drawing the footer, use this starting point:
+    let footerStartY;
+
+    if (currentPage === 1) {
+      // If everything is on one page
+      footerStartY = tableY + tableHeaderHeight + lastPageItemsHeight;
+    } else {
+      // If we're on a subsequent page
+      footerStartY = margin + tableHeaderHeight + lastPageItemsHeight;
+    }
+
     // Output CGST and SGST rows
-    const taxY = itemY + 10;
+    const taxY = footerStartY + 10;
     let currentX = margin;
 
     doc.setFont(undefined, "normal");

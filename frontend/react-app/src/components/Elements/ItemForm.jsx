@@ -91,6 +91,20 @@ const ItemForm = ({ open, onOpenChange, onSave }) => {
             />
           </div>
 
+          {/* HSN/SAC Code - ADDED THIS SECTION */}
+          <div className="flex flex-col space-y-1">
+            <div className="flex items-center space-x-1">
+              <Label className="text-sm font-medium">
+                {itemType === "goods" ? "HSN Code" : "SAC Code"}
+              </Label>
+            </div>
+            <Input
+              // value={formData.hsnSacCode}
+              onChange={(e) => handleInputChange("hsnSacCode", e.target.value)}
+              placeholder={`Enter ${itemType === "goods" ? "HSN" : "SAC"} code`}
+            />
+          </div>
+
           {/* Unit */}
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">

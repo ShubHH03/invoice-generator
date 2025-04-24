@@ -141,6 +141,10 @@ const InvoiceForm = () => {
           // Make sure this matches the actual response structure
           const itemsData = response.items || response.data || [];
           console.log("Items data:", itemsData);
+          // Debug to check for HSN values
+          itemsData.forEach((item) => {
+            console.log(`Item ${item.id} (${item.name}) HSN:`, item.hsnSacCode);
+          });
 
           // Transform the items to match the format needed for the dropdown
           const formattedItems = itemsData.map((item) => ({
@@ -149,7 +153,7 @@ const InvoiceForm = () => {
             rate: item.sellingPrice?.toString() || "0.00",
             description: item.description || "",
             unit: item.unit || "",
-            hsn: item.hsn || "", // Add this line to include HSN code
+            hsn: item.hsnSacCode || "", // Add this line to include HSN code
           }));
           console.log("Formatted items:", formattedItems);
 
@@ -289,7 +293,7 @@ const InvoiceForm = () => {
       quantity: "1.00",
       rate: "0.00",
       amount: "0.00",
-      hsn: "", // Add this line
+      hsn: "", // Ensure this is present
     },
   ]);
 
@@ -529,12 +533,15 @@ const InvoiceForm = () => {
       // Update the items array with selected item details
       const updatedItems = items.map((item) => {
         if (item.id === rowId) {
+          // Add debugging to verify HSN value
+          console.log("HSN from selected item:", selectedItem.hsn);
+
           return {
             ...item,
-            id: selectedItem.id,
+            itemId: selectedItem.id, // Store the database item ID separately
             details: selectedItem.name,
             rate: selectedItem.rate || "0.00",
-            hsn: selectedItem.hsn || "", // Add HSN code from database
+            hsn: selectedItem.hsn || "", // Ensure HSN gets populated
             amount: (
               (parseFloat(item.quantity) || 1) *
               (parseFloat(selectedItem.rate) || 0)
@@ -544,7 +551,7 @@ const InvoiceForm = () => {
         return item;
       });
 
-      console.log("Updated items:", updatedItems);
+      console.log("Updated items with HSN:", updatedItems);
       setItems(updatedItems);
 
       // Close this specific item's dropdown
@@ -618,6 +625,7 @@ const InvoiceForm = () => {
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
           amount: parseFloat(item.amount) || 0,
+          hsn: item.hsn || "", // This line is correctly including HSN code
         })),
         subtotal: subtotal,
         cgstRate: 9,
@@ -701,13 +709,14 @@ const InvoiceForm = () => {
         signature: signature || selectedCompany.signature || null,
 
         // Step 10: Format items for PDF generation
+        // Step 10: Format items for PDF generation
         items: items.map((item) => ({
-          name: item.name || "Item",
-          details: item.description || "",
-          hsn: item.hsn || "",
+          name: item.details || "Item",
+          details: item.details || "",
+          hsn: item.hsn || "", // This line is present
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
-          per: item.per || "Nos",
+          per: "Nos",
           amount: parseFloat(item.amount) || 0,
         })),
       };

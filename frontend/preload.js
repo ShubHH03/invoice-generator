@@ -25,4 +25,7 @@ contextBridge.exposeInMainWorld("electron", {
   getAllInvoices: () => ipcRenderer.invoke("invoice:getAll"),
   getInvoiceById: (id) => ipcRenderer.invoke("invoice:getById", id),
   getCustomerbyId: (id) => ipcRenderer.invoke("customer:getById", id),
+
+  getInvoiceItems: (invoiceId) =>
+    ipcRenderer.invoke("get-invoice-items", invoiceId),
 });

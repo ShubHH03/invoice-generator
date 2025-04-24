@@ -327,7 +327,6 @@ function registerInvoiceItemsIpc(ipcMain) {
     }
   });
 
-
   // ipcMain.handle("get-invoice-items", async (event, invoiceId) => {
   //   try {
   //     console.log(

@@ -23,17 +23,6 @@ export default function GenerateReport() {
           const withCustomerNames = await Promise.all(
             invoiceList.map(async (invoice) => {
               let customerName = "Unknown";
-              try {
-                const customerResponse = await window.electron.invoke(
-                  "customer:getById",
-                  invoice.customerId
-                );
-                if (customerResponse.success) {
-                  customerName = customerResponse.customer.customerName;
-                }
-              } catch (e) {
-                console.warn("Customer not found:", e);
-              }
 
               return {
                 invoiceNo: invoice.invoiceNo,

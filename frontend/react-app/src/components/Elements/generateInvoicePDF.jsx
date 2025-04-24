@@ -494,12 +494,12 @@ export const generateInvoicePDF = (invoice) => {
   // Adjusted column widths to fit the page
   const colWidths = {
     slNo: 5,
-    description: 100,
+    description: 90,
     hsn: 20,
     quantity: 15,
-    rate: 15,
+    rate: 20,
     per: 10,
-    amount: 25,
+    amount: 30,
   };
 
   // Function to draw table header - we'll need this for each page

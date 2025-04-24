@@ -67,36 +67,35 @@ function registerInvoiceGeneratorIpc() {
         })
         .returning();
 
-        console.log("max");
-        const invoiceId = insertedInvoice[0].id;
-        console.log("Inserted invoice ID:", invoiceId);
+      console.log("max");
+      const invoiceId = insertedInvoice[0].id;
+      console.log("Inserted invoice ID:", invoiceId);
 
-        // Process invoice items if they exist
-        if (
-          invoiceData.items &&
-          Array.isArray(invoiceData.items) &&
-          invoiceData.items.length > 0
-        ) {
-          // Transform items to match the database schema
-          console.log("Items shubh:", invoiceData.items);
-          const itemsToInsert = invoiceData.items.map((item) => ({
-            invoiceId: invoiceId,
-            itemId: item.id || 0, // If new item, use 0 or null as appropriate
-            itemDetails: item.details || "",
-            quantity: parseFloat(item.quantity) || 0,
-            rate: parseFloat(item.rate) || 0,
-            amount: parseFloat(item.amount) || 0,
-          }));
+      // Process invoice items if they exist
+      if (
+        invoiceData.items &&
+        Array.isArray(invoiceData.items) &&
+        invoiceData.items.length > 0
+      ) {
+        // Transform items to match the database schema
+        console.log("Items shubh:", invoiceData.items);
+        const itemsToInsert = invoiceData.items.map((item) => ({
+          invoiceId: invoiceId,
+          itemId: item.id || 0, // If new item, use 0 or null as appropriate
+          itemDetails: item.details || "",
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.amount) || 0,
+        }));
 
-          console.log("Items to insert:", itemsToInsert);
-          // Insert all items in a batch
-          await db.insert(invoiceItems).values(itemsToInsert);
+        console.log("Items to insert:", itemsToInsert);
+        // Insert all items in a batch
+        await db.insert(invoiceItems).values(itemsToInsert);
 
-          console.log(
-            `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
-          );
-        }
-
+        console.log(
+          `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
+        );
+      }
 
       console.log("Invoice created successfully:", insertedInvoice);
 

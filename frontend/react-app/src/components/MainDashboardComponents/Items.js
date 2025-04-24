@@ -78,6 +78,7 @@ const Items = () => {
           const formattedItems = itemsData.map((item) => ({
             id: item.id,
             name: item.name,
+            hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
             description: item.description || "",
             rate:
               item.sellingPrice !== undefined
@@ -229,6 +230,7 @@ const Items = () => {
         const formattedItems = itemsData.map((item) => ({
           id: item.id,
           name: item.name,
+          hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
           description: item.description || "",
           rate:
             item.sellingPrice !== undefined ? parseFloat(item.sellingPrice) : 0,
@@ -247,6 +249,14 @@ const Items = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Format column display name
+  const formatColumnName = (columnName) => {
+    if (columnName === "hsnSacCode") return "HSN/SAC Code";
+    return (
+      columnName.charAt(0).toUpperCase() + columnName.slice(1).toLowerCase()
+    );
   };
 
   return (
@@ -284,8 +294,7 @@ const Items = () => {
                   {columns.map((column) => (
                     <TableHead key={column}>
                       <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() +
-                          column.slice(1).toLowerCase()}
+                        {formatColumnName(column)}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -397,7 +406,9 @@ const Items = () => {
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
+              <DialogTitle>
+                Filter {formatColumnName(currentFilterColumn)}
+              </DialogTitle>
               <p className="text-sm text-gray-600">
                 Make changes to your filter here. Click save when you're done.
               </p>

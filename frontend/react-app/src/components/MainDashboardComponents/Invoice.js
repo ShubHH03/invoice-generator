@@ -16,7 +16,9 @@ export default function GenerateReport() {
 
         if (response.success) {
           const invoiceList = response.invoices;
-
+          invoiceList.sort(
+            (a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate)
+          );
           // Resolve customer names for each invoice
           const withCustomerNames = await Promise.all(
             invoiceList.map(async (invoice) => {

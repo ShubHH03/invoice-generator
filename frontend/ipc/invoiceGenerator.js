@@ -97,7 +97,6 @@ function registerInvoiceGeneratorIpc() {
         );
       }
 
-
       console.log("Invoice created successfully:", insertedInvoice);
 
       return {

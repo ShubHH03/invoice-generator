@@ -15,6 +15,7 @@ function registerItemDashboardIpc() {
         const result = await db.insert(items).values({
           type: data.itemType || "Goods",
           name: data.name,
+          hsnSacCode: data.hsnSacCode || null, // Added HSN/SAC code
           unit: data.unit || null,
           sellingPrice: parseFloat(data.price || 0),
           description: data.description || null,

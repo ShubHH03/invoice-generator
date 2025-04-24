@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Loader2, Plus, HelpCircle} from "lucide-react"
+import { Search, Loader2, Plus, HelpCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table"
 import { Button } from "../ui/button"
@@ -206,12 +206,12 @@ const DataTable = ({ data = [], title }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative">
-          <Table>
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
             <TableHeader>
               <TableRow>
                 {columns.map((column) => (
-                  <TableHead key={column}>
+                  <TableHead key={column} className="w-10 sticky left-0 bg-white z-10">
                     <div className="flex items-center gap-2">
                       {column.charAt(0).toUpperCase() + column.slice(1).toLowerCase()}
                       {column.toLowerCase() !== "description" && (

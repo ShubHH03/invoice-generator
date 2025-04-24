@@ -6,6 +6,13 @@ const { spawn } = require("child_process");
 const { registerItemDashboardIpc } = require("./ipc/itemDashboard");
 const { registerCompanyDashboardIpc } = require("./ipc/companyDashboard");
 const { registerCustomerDashboardIpc } = require("./ipc/customerDashboard");
+const { registerTallyIpc } = require("./ipc/tallyHandlers.js");
+const log = require("electron-log");
+
+
+// Configure electron-log
+log.transports.console.level = "debug"; // Set the log level
+log.transports.file.level = "info"; // Only log info level and above in the log file
 const {
   registerInvoiceGeneratorIpc,
   registerInvoiceItemsIpc,
@@ -100,6 +107,7 @@ function createWindow() {
   registerItemDashboardIpc();
   registerCompanyDashboardIpc();
   registerCustomerDashboardIpc();
+  registerTallyIpc();
   registerInvoiceGeneratorIpc();
   registerInvoiceItemsIpc();
   console.log("IPC handlers registered");

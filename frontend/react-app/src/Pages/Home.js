@@ -6,6 +6,9 @@ import {
   UserPlus,
   LayoutList,
   Import,
+  Upload,
+  Plus,
+  Grid2X2,
 } from "lucide-react";
 import ReportGenerator from "../components/MainDashboardComponents/Invoice";
 import { cn } from "../lib/utils";
@@ -19,6 +22,7 @@ import { BreadcrumbDynamic } from "../components/BreadCrumb";
 import { useBreadcrumb } from "../contexts/BreadcrumbContext";
 import { useParams } from "react-router-dom";
 import Company from "../components/MainDashboardComponents/Company";
+import TallyDirectImport from "../components/ImportTally/TallyDirectImport";
 
 const Dashboard = () => {
   const { breadcrumbs, setMainDashboard } = useBreadcrumb();
@@ -58,6 +62,25 @@ const Dashboard = () => {
       title: "Items",
       url: "#",
       icon: ShoppingBag,
+    },
+
+    {
+      title: "Tally",
+      icon: Grid2X2,
+      // This group will be open by default
+      items: [
+        {
+          title: "Ledgers",
+          url: "#",
+          icon: Plus,
+        },
+        {
+          title: "Upload to Tally",
+          url: "#",
+          icon: Upload,
+        },
+      ],
+      alwaysOpen: true,
     },
   ];
   useEffect(() => {
@@ -110,6 +133,24 @@ const Dashboard = () => {
               {activeTab === "Items" && <Items />}
               {activeTab === "Invoice" && <ReportGenerator />}
               {activeTab === "Company" && <Company />}
+              {activeTab === "Upload to Tally" && (
+                <TallyDirectImport
+                  defaultVoucher={"Payment Receipt Contra"}
+                  setActiveTab={setActiveTab}
+                />
+              )}
+              {activeTab === "Ledgers" && (
+                <TallyDirectImport
+                  defaultVoucher={"Ledgers"}
+                  setActiveTab={setActiveTab}
+                />
+              )}
+              {activeTab === "Import Ledgers" && (
+                <TallyDirectImport
+                  defaultVoucher={"Import Ledgers"}
+                  setActiveTab={setActiveTab}
+                />
+              )}
             </main>
           </div>
         </ScrollArea>

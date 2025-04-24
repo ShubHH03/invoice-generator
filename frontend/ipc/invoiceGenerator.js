@@ -67,35 +67,35 @@ function registerInvoiceGeneratorIpc() {
         })
         .returning();
 
-        console.log("max");
-        const invoiceId = insertedInvoice[0].id;
-        console.log("Inserted invoice ID:", invoiceId);
+      console.log("max");
+      const invoiceId = insertedInvoice[0].id;
+      console.log("Inserted invoice ID:", invoiceId);
 
-        // Process invoice items if they exist
-        if (
-          invoiceData.items &&
-          Array.isArray(invoiceData.items) &&
-          invoiceData.items.length > 0
-        ) {
-          // Transform items to match the database schema
-          console.log("Items shubh:", invoiceData.items);
-          const itemsToInsert = invoiceData.items.map((item) => ({
-            invoiceId: invoiceId,
-            itemId: item.id || 0, // If new item, use 0 or null as appropriate
-            itemDetails: item.details || "",
-            quantity: parseFloat(item.quantity) || 0,
-            rate: parseFloat(item.rate) || 0,
-            amount: parseFloat(item.amount) || 0,
-          }));
+      // Process invoice items if they exist
+      if (
+        invoiceData.items &&
+        Array.isArray(invoiceData.items) &&
+        invoiceData.items.length > 0
+      ) {
+        // Transform items to match the database schema
+        console.log("Items shubh:", invoiceData.items);
+        const itemsToInsert = invoiceData.items.map((item) => ({
+          invoiceId: invoiceId,
+          itemId: item.id || 0, // If new item, use 0 or null as appropriate
+          itemDetails: item.details || "",
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.amount) || 0,
+        }));
 
-          console.log("Items to insert:", itemsToInsert);
-          // Insert all items in a batch
-          await db.insert(invoiceItems).values(itemsToInsert);
+        console.log("Items to insert:", itemsToInsert);
+        // Insert all items in a batch
+        await db.insert(invoiceItems).values(itemsToInsert);
 
-          console.log(
-            `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
-          );
-        }
+        console.log(
+          `Added ${itemsToInsert.length} items to invoice ${invoiceId}`
+        );
+      }
 
 
       console.log("Invoice created successfully:", insertedInvoice);
@@ -298,6 +298,76 @@ function registerInvoiceItemsIpc(ipcMain) {
       };
     }
   });
+
+  ipcMain.handle("invoiceItem:getAll", async (event, invoiceId) => {
+    try {
+      if (!invoiceId) {
+        return {
+          success: false,
+          error: "Invoice ID is required",
+        };
+      }
+
+      console.log("Fetching items for invoiceId:", invoiceId);
+      // Fetch items for the given invoice ID
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where("invoiceId", "=", invoiceId);
+
+      return {
+        success: true,
+        data: items,
+      };
+    } catch (error) {
+      console.error("Error fetching invoice items:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+
+  // ipcMain.handle("get-invoice-items", async (event, invoiceId) => {
+  //   try {
+  //     console.log(
+  //       `Received get-invoice-items request for invoice: ${invoiceId}`
+  //     );
+
+  //     // If invoiceId is provided, fetch items for that specific invoice
+  //     if (invoiceId) {
+  //       const result = await db
+  //         .select({
+  //           id: invoiceItems.id,
+  //           invoiceId: invoiceItems.invoiceId,
+  //           itemId: invoiceItems.itemId,
+  //           itemDetails: invoiceItems.itemDetails,
+  //           quantity: invoiceItems.quantity,
+  //           rate: invoiceItems.rate,
+  //           amount: invoiceItems.amount,
+  //           // You can join with items table if needed
+  //         })
+  //         .from(invoiceItems)
+  //         .where(eq(invoiceItems.invoiceId, invoiceId));
+
+  //       console.log(
+  //         `Retrieved ${result.length} invoice items for invoice #${invoiceId}`
+  //       );
+  //       return { success: true, invoiceItems: result };
+  //     }
+  //     // If no invoiceId provided, fetch all invoice items
+  //     else {
+  //       const result = await db.select().from(invoiceItems);
+
+  //       console.log(`Retrieved ${result.length} invoice items from db`);
+  //       return { success: true, invoiceItems: result };
+  //     }
+  //   } catch (err) {
+  //     console.error("Get Invoice Items error:", err);
+  //     return { success: false, error: err.message };
+  //   }
+  // });
 }
 
 module.exports = { registerInvoiceGeneratorIpc, registerInvoiceItemsIpc };

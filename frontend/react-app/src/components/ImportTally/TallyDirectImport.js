@@ -1,49 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "../ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { Loader2 } from "lucide-react";
 import TallyTable from "./TallyTable";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
 import { useReportContext } from "../../contexts/ReportContext";
-import ManualTallyTable from "./ManualTable";
 import * as XLSX from "xlsx";
 import { useToast } from "../../hooks/use-toast";
-import { Input } from "../ui/input";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import localForage from "localforage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "../ui/table";
-import DataTable from "../MainDashboardComponents/TableData";
+
 
 const defaultColumns = {
   "Payment Receipt Contra": [
@@ -139,64 +103,64 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
   // New helper function to fetch and process transactions data
   async function fetchAllTransactions() {
     console.log("tally")
-    // try {
-    //   const data = await window.electron.getTallyTransactions(caseId);
-    //   console.log("fetched data", data);
-    //   // const sortedData = data.sort((a, b) => a.imported - b.imported);
-    //   // const storedReasons = JSON.parse(
-    //   //   localStorage.getItem("failedTransactions") || "{}"
-    //   // );
-    //   console.log(
-    //     "particular",
-    //     data.map((d) => d.bill_reference)
-    //   );
-    //   const formattedData = data
-    //     .map((transaction) => {
-    //       if (transaction.voucher_type === "unknown") return null;
-    //       return {
-    //         date: new Date(transaction.date).toLocaleDateString("en-GB", {
-    //           day: "2-digit",
-    //           month: "2-digit",
-    //           year: "numeric",
-    //         }),
-    //         effective_date: transaction.effective_date || "",
-    //         bill_reference: transaction.bill_reference || "",
-    //         ledger:
-    //           transaction.entity !== "unknown"
-    //             ? transaction.entity
-    //             : transaction.category,
-    //         // dr_ledger:
-    //         //   transaction.type === "debit"
-    //         //     ? transaction.entity !== "unknown"
-    //         //       ? transaction.entity
-    //         //       : transaction.category
-    //         //     : "",
-    //         // cr_ledger:
-    //         //   transaction.type === "credit"
-    //         //     ? transaction.entity !== "unknown"
-    //         //       ? transaction.entity
-    //         //       : transaction.category
-    //         //     : "",
-    //         amount: transaction.amount,
-    //         voucher_type: transaction.voucher_type,
-    //         type: transaction.type,
-    //         narration: transaction.description,
-    //         id: transaction.id,
-    //         imported: transaction.imported === 1,
-    //         failed_reason: transaction.failed_reason || "",
-    //       };
-    //     })
-    //     .filter((t) => t !== null);
+    try {
+      const data = await window.electron.getTallyTransactions(caseId);
+      console.log("fetched data", data);
+      // const sortedData = data.sort((a, b) => a.imported - b.imported);
+      // const storedReasons = JSON.parse(
+      //   localStorage.getItem("failedTransactions") || "{}"
+      // );
+      console.log(
+        "particular",
+        data.map((d) => d.bill_reference)
+      );
+      const formattedData = data
+        .map((transaction) => {
+          if (transaction.voucher_type === "unknown") return null;
+          return {
+            date: new Date(transaction.date).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }),
+            effective_date: transaction.effective_date || "",
+            bill_reference: transaction.bill_reference || "",
+            ledger:
+              transaction.entity !== "unknown"
+                ? transaction.entity
+                : transaction.category,
+            // dr_ledger:
+            //   transaction.type === "debit"
+            //     ? transaction.entity !== "unknown"
+            //       ? transaction.entity
+            //       : transaction.category
+            //     : "",
+            // cr_ledger:
+            //   transaction.type === "credit"
+            //     ? transaction.entity !== "unknown"
+            //       ? transaction.entity
+            //       : transaction.category
+            //     : "",
+            amount: transaction.amount,
+            voucher_type: transaction.voucher_type,
+            type: transaction.type,
+            narration: transaction.description,
+            id: transaction.id,
+            imported: transaction.imported === 1,
+            failed_reason: transaction.failed_reason || "",
+          };
+        })
+        .filter((t) => t !== null);
 
-    //   console.log("formattedData", formattedData);
-    //   // Update state so that other parts of your component can use this data
-    //   setTransactions(formattedData);
-    //   setInitialPayRecContraData(formattedData);
-    //   return formattedData;
-    // } catch (err) {
-    //   console.error("Error fetching transactions:", err);
-    //   return [];
-    // }
+      console.log("formattedData", formattedData);
+      // Update state so that other parts of your component can use this data
+      setTransactions(formattedData);
+      setInitialPayRecContraData(formattedData);
+      return formattedData;
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+      return [];
+    }
   }
 
   const handleVoucherChange = async (voucherName) => {
@@ -1052,18 +1016,18 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
                 customerName: customerName || "Unknown",
                 salesLedger: invoice.ledger || "Sales Ledger",
                 taxableValue: invoice.subtotal || 0,
-                cgstLedger: "CGST", // Static name
+                cgstLedger: "CGST",
                 cgstPercent: invoice.cgstRate || 0,
                 cgstAmount: invoice.cgstAmount || 0,
-                sgstLedger: "SGST", // Static name
+                sgstLedger: "SGST",
                 sgstPercent: invoice.sgstRate || 0,
                 sgstAmount: invoice.sgstAmount || 0,
-                igstLedger: "IGST", // Static name
+                igstLedger: "IGST",
                 igstPercentage: invoice.igstRate || 0,
                 igstAmount: invoice.igstAmount || 0,
                 totalBillAmount: invoice.totalAmount || 0,
                 narration: invoice.narration || "",
-                status: "Paid", // Replace with dynamic status if available
+                status: "Paid",
               };
             })
           );
@@ -1082,13 +1046,12 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
     fetchInvoices();
   }, []);
 
-
+  // Sales Multi-Stock
   useEffect(() => {
     const fetchInvoices = async () => {
       setLoading(true);
       try {
         const response = await window.electron.getAllInvoices();
-        console.log(response, "wrwiwie")
         if (response.success) {
           const invoiceList = response.invoices;
 
@@ -1112,29 +1075,28 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
                 console.warn("Customer lookup failed:", e);
               }
 
-              let invoiceItems = [];
+              // Handle invoice items
+              let stockItem = "Unknown";
+              let quantity = 0;
+              let rate = 0;
+              let taxValue = 0;
+
               try {
                 const itemsResponse = await window.electron.getAllInvoiceItems(invoice.id);
-                console.log(itemsResponse, "ryiwuyriywiryiuwiryw")
-                if (itemsResponse.success) {
-                  // invoiceItems = itemsResponse.invoiceItems;
-                  invoiceItems = itemsResponse.data;
-                  console.log("Fetched invoice items:", invoiceItems);
+                console.log(itemsResponse, "itemmmmmmssssss");
+
+                if (itemsResponse.success && itemsResponse.data && itemsResponse.data.length > 0) {
+                  const firstItem = itemsResponse.data[0];
+                  stockItem = firstItem.itemDetails || "Unknown";
+                  quantity = firstItem.quantity || 0;
+                  rate = firstItem.rate || 0;
+                  taxValue = firstItem.amount || 0;
+
+                  console.log("Fetched invoice item:", firstItem);
                 }
               } catch (e) {
                 console.warn("Failed to fetch invoice items:", e);
               }
-
-              // const mappedItems = invoiceItems.map(item => ({
-              //   stockItem: item.itemDetails,
-              //   quantity: item.quantity,
-              //   rate: item.rate,
-              //   taxValue: item.amount,
-              // }));
-
-              // console.log("Mapped items:", mappedItems);
-
-              // Map the data according to your salesMultiStockMappings
               return {
                 companyName: customerCompanyName || "Unknown",
                 invoiceDate: formatDate(invoice.invoiceDate),
@@ -1142,17 +1104,10 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
                 invoiceNo: invoice.invoiceNo,
                 voucherName: invoice.voucherName || "",
                 customerName: customerName || "Unknown",
-                // items: invoiceItems.map(item => ({
-                //   stockItem: item.itemDetails,
-                //   quantity: item.quantity,
-                //   rate: item.rate,
-                //   taxValue: item.amount,
-                // })),
-                // items: mappedItems,
-                // stockItem: invoiceItems.itemDetails,
-                // quantity: invoiceItems.quantity,
-                // rate: invoiceItems.rate,
-                // taxValue: invoiceItems.amount,
+                item: stockItem,
+                quantity: quantity,
+                rate: rate,
+                taxValue: taxValue,
                 salesLedger: invoice.ledger || "Sales Ledger",
                 cgstLedger: "CGST",
                 cgstPercentage: invoice.cgstRate || 0,

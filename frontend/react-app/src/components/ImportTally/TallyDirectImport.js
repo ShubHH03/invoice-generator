@@ -1,49 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "../ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { Loader2 } from "lucide-react";
 import TallyTable from "./TallyTable";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
 import { useReportContext } from "../../contexts/ReportContext";
-import ManualTallyTable from "./ManualTable";
 import * as XLSX from "xlsx";
 import { useToast } from "../../hooks/use-toast";
-import { Input } from "../ui/input";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import localForage from "localforage";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "../ui/table";
-import DataTable from "../MainDashboardComponents/TableData";
+
 
 const defaultColumns = {
   "Payment Receipt Contra": [
@@ -139,64 +103,64 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
   // New helper function to fetch and process transactions data
   async function fetchAllTransactions() {
     console.log("tally")
-    // try {
-    //   const data = await window.electron.getTallyTransactions(caseId);
-    //   console.log("fetched data", data);
-    //   // const sortedData = data.sort((a, b) => a.imported - b.imported);
-    //   // const storedReasons = JSON.parse(
-    //   //   localStorage.getItem("failedTransactions") || "{}"
-    //   // );
-    //   console.log(
-    //     "particular",
-    //     data.map((d) => d.bill_reference)
-    //   );
-    //   const formattedData = data
-    //     .map((transaction) => {
-    //       if (transaction.voucher_type === "unknown") return null;
-    //       return {
-    //         date: new Date(transaction.date).toLocaleDateString("en-GB", {
-    //           day: "2-digit",
-    //           month: "2-digit",
-    //           year: "numeric",
-    //         }),
-    //         effective_date: transaction.effective_date || "",
-    //         bill_reference: transaction.bill_reference || "",
-    //         ledger:
-    //           transaction.entity !== "unknown"
-    //             ? transaction.entity
-    //             : transaction.category,
-    //         // dr_ledger:
-    //         //   transaction.type === "debit"
-    //         //     ? transaction.entity !== "unknown"
-    //         //       ? transaction.entity
-    //         //       : transaction.category
-    //         //     : "",
-    //         // cr_ledger:
-    //         //   transaction.type === "credit"
-    //         //     ? transaction.entity !== "unknown"
-    //         //       ? transaction.entity
-    //         //       : transaction.category
-    //         //     : "",
-    //         amount: transaction.amount,
-    //         voucher_type: transaction.voucher_type,
-    //         type: transaction.type,
-    //         narration: transaction.description,
-    //         id: transaction.id,
-    //         imported: transaction.imported === 1,
-    //         failed_reason: transaction.failed_reason || "",
-    //       };
-    //     })
-    //     .filter((t) => t !== null);
+    try {
+      const data = await window.electron.getTallyTransactions(caseId);
+      console.log("fetched data", data);
+      // const sortedData = data.sort((a, b) => a.imported - b.imported);
+      // const storedReasons = JSON.parse(
+      //   localStorage.getItem("failedTransactions") || "{}"
+      // );
+      console.log(
+        "particular",
+        data.map((d) => d.bill_reference)
+      );
+      const formattedData = data
+        .map((transaction) => {
+          if (transaction.voucher_type === "unknown") return null;
+          return {
+            date: new Date(transaction.date).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            }),
+            effective_date: transaction.effective_date || "",
+            bill_reference: transaction.bill_reference || "",
+            ledger:
+              transaction.entity !== "unknown"
+                ? transaction.entity
+                : transaction.category,
+            // dr_ledger:
+            //   transaction.type === "debit"
+            //     ? transaction.entity !== "unknown"
+            //       ? transaction.entity
+            //       : transaction.category
+            //     : "",
+            // cr_ledger:
+            //   transaction.type === "credit"
+            //     ? transaction.entity !== "unknown"
+            //       ? transaction.entity
+            //       : transaction.category
+            //     : "",
+            amount: transaction.amount,
+            voucher_type: transaction.voucher_type,
+            type: transaction.type,
+            narration: transaction.description,
+            id: transaction.id,
+            imported: transaction.imported === 1,
+            failed_reason: transaction.failed_reason || "",
+          };
+        })
+        .filter((t) => t !== null);
 
-    //   console.log("formattedData", formattedData);
-    //   // Update state so that other parts of your component can use this data
-    //   setTransactions(formattedData);
-    //   setInitialPayRecContraData(formattedData);
-    //   return formattedData;
-    // } catch (err) {
-    //   console.error("Error fetching transactions:", err);
-    //   return [];
-    // }
+      console.log("formattedData", formattedData);
+      // Update state so that other parts of your component can use this data
+      setTransactions(formattedData);
+      setInitialPayRecContraData(formattedData);
+      return formattedData;
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+      return [];
+    }
   }
 
   const handleVoucherChange = async (voucherName) => {
@@ -1027,55 +991,43 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
           const withFullDetails = await Promise.all(
             invoiceList.map(async (invoice) => {
               let customerName = "Unknown";
-              let companyName = "Unknown";
+              let customerCompanyName = "Unknown";
 
-              // Fetch Customer Name
               try {
-                const customerResponse = await window.electron.invoke(
-                  "customer:getById",
-                  invoice.customerId
-                );
-                if (customerResponse.success) {
-                  customerName = customerResponse.customer.customerName;
+                const response = await window.electron.getCustomer();
+                const allCustomers = response.customers || [];
+
+                const customer = allCustomers.find(c => c.id === invoice.customerId);
+
+                if (customer) {
+                  customerName = `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
+                  customerCompanyName = customer.companyName || "Unknown";
                 }
               } catch (e) {
-                console.warn("Customer not found:", e);
-              }
-
-              // Fetch Company Name
-              try {
-                const companyResponse = await window.electron.invoke(
-                  "company:getById",
-                  invoice.companyId
-                );
-                if (companyResponse.success) {
-                  companyName = companyResponse.company.name;
-                }
-              } catch (e) {
-                console.warn("Company not found:", e);
+                console.warn("Customer lookup failed:", e);
               }
 
               return {
-                companyName,
+                companyName: customerCompanyName || "Unknown",
                 invoiceDate: formatDate(invoice.invoiceDate),
                 effectiveDate: formatDate(invoice.dueDate),
                 voucherNumber: invoice.invoiceNo,
                 referenceNumber: invoice.terms,
-                customerName,
+                customerName: customerName || "Unknown",
                 salesLedger: invoice.ledger || "Sales Ledger",
                 taxableValue: invoice.subtotal || 0,
-                cgstLedger: "CGST", // Static name
+                cgstLedger: "CGST",
                 cgstPercent: invoice.cgstRate || 0,
                 cgstAmount: invoice.cgstAmount || 0,
-                sgstLedger: "SGST", // Static name
+                sgstLedger: "SGST",
                 sgstPercent: invoice.sgstRate || 0,
                 sgstAmount: invoice.sgstAmount || 0,
-                igstLedger: "IGST", // Static name
+                igstLedger: "IGST",
                 igstPercentage: invoice.igstRate || 0,
                 igstAmount: invoice.igstAmount || 0,
                 totalBillAmount: invoice.totalAmount || 0,
                 narration: invoice.narration || "",
-                status: "Paid", // Replace with dynamic status if available
+                status: "Paid",
               };
             })
           );
@@ -1094,73 +1046,68 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
     fetchInvoices();
   }, []);
 
-
+  // Sales Multi-Stock
   useEffect(() => {
     const fetchInvoices = async () => {
       setLoading(true);
       try {
         const response = await window.electron.getAllInvoices();
-
         if (response.success) {
           const invoiceList = response.invoices;
 
           // Resolve customer names and invoice items for each invoice
           const detailedInvoices = await Promise.all(
             invoiceList.map(async (invoice) => {
-              // Get customer info
               let customerName = "Unknown";
+              let customerCompanyName = "Unknown";
+
               try {
-                const customerResponse = await window.electron.invoke(
-                  "customer:getById",
-                  invoice.customerId
-                );
-                if (customerResponse.success) {
-                  customerName = customerResponse.customer.customerName;
+                const response = await window.electron.getCustomer();
+                const allCustomers = response.customers || [];
+
+                const customer = allCustomers.find(c => c.id === invoice.customerId);
+
+                if (customer) {
+                  customerName = `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
+                  customerCompanyName = customer.companyName || "Unknown";
                 }
               } catch (e) {
-                console.warn("Customer not found:", e);
+                console.warn("Customer lookup failed:", e);
               }
 
+              // Handle invoice items
+              let stockItem = "Unknown";
+              let quantity = 0;
+              let rate = 0;
+              let taxValue = 0;
 
-              let invoiceItems = [];
               try {
-                const itemsResponse = await window.electron.getInvoiceItems(invoice.id);
-                if (itemsResponse.success) {
-                  invoiceItems = itemsResponse.invoiceItems;
-                  console.log("Fetched invoice items:", invoiceItems);
+                const itemsResponse = await window.electron.getAllInvoiceItems(invoice.id);
+                console.log(itemsResponse, "itemmmmmmssssss");
+
+                if (itemsResponse.success && itemsResponse.data && itemsResponse.data.length > 0) {
+                  const firstItem = itemsResponse.data[0];
+                  stockItem = firstItem.itemDetails || "Unknown";
+                  quantity = firstItem.quantity || 0;
+                  rate = firstItem.rate || 0;
+                  taxValue = firstItem.amount || 0;
+
+                  console.log("Fetched invoice item:", firstItem);
                 }
               } catch (e) {
                 console.warn("Failed to fetch invoice items:", e);
               }
-
-              const mappedItems = invoiceItems.map(item => ({
-                stockItem: item.itemDetails,
-                quantity: item.quantity,
-                rate: item.rate,
-                taxValue: item.amount,
-              }));
-
-              console.log("Mapped items:", mappedItems);
-
-              // Map the data according to your salesMultiStockMappings
               return {
-                companyName: invoice.companyName || "Unknown",
+                companyName: customerCompanyName || "Unknown",
                 invoiceDate: formatDate(invoice.invoiceDate),
                 effectiveDate: formatDate(invoice.effectiveDate || invoice.invoiceDate),
                 invoiceNo: invoice.invoiceNo,
                 voucherName: invoice.voucherName || "",
-                customerName,
-                // items: invoiceItems.map(item => ({
-                //   stockItem: item.itemDetails,
-                //   quantity: item.quantity,
-                //   rate: item.rate,
-                //   taxValue: item.amount,
-                // })),
-                items: mappedItems,
-                // stockItem: invoiceItems.itemDetails,
-                // quantity: invoiceItems.quantity,
-                // rate: invoiceItems.rate,
-                // taxValue: invoiceItems.amount,
+                customerName: customerName || "Unknown",
+                item: stockItem,
+                quantity: quantity,
+                rate: rate,
+                taxValue: taxValue,
                 salesLedger: invoice.ledger || "Sales Ledger",
                 cgstLedger: "CGST",
                 cgstPercentage: invoice.cgstRate || 0,
@@ -1218,7 +1165,27 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
                 </div>
               ) : (
                 <div className="w-full">
-                  <DataTable data={invoices} title="Sales" />
+                  <TallyTable
+                    data={invoices}
+                    title={
+                      source === "manual"
+                        ? "Manual Transactions"
+                        : `Tally ${selectedVoucher} Voucher`
+                    }
+                    subtitle=""
+                    handleUpload={handleUploadClick}
+                    setCompanyName={handleCompanyNameChange}
+                    companyName={companyName}
+                    selectedVoucher={selectedVoucher}
+                    caseId={caseId}
+                    handleLedgerImport={handleLedgerImport}
+                    selectedBankLedger={selectedBankLedger}
+                    setSelectedBankLedger={setSelectedBankLedger}
+                    isEmptyLedgersSelected={isEmptyLedgersSelected}
+                    setIsEmptyLedgersSelected={setIsEmptyLedgersSelected}
+                    port={port}
+                    setPort={setPort}
+                  />
                 </div>
               )}
             </div>
@@ -1234,221 +1201,33 @@ const TallyDirectImport = ({ defaultVoucher, source, setActiveTab }) => {
                 </div>
               ) : (
                 <div className="w-full">
-                  <DataTable data={salesMultiStockData} title="Sales Multi-Stock" />
+                  <TallyTable
+                    data={salesMultiStockData}
+                    title={
+                      source === "manual"
+                        ? "Manual Transactions"
+                        : `Tally ${selectedVoucher} Voucher`
+                    }
+                    subtitle=""
+                    handleUpload={handleUploadClick}
+                    setCompanyName={handleCompanyNameChange}
+                    companyName={companyName}
+                    selectedVoucher={selectedVoucher}
+                    caseId={caseId}
+                    handleLedgerImport={handleLedgerImport}
+                    selectedBankLedger={selectedBankLedger}
+                    setSelectedBankLedger={setSelectedBankLedger}
+                    isEmptyLedgersSelected={isEmptyLedgersSelected}
+                    setIsEmptyLedgersSelected={setIsEmptyLedgersSelected}
+                    port={port}
+                    setPort={setPort}
+                  />
                 </div>
               )}
             </div>
           </TabsContent>
         </Tabs>
       </div>
-      <Card className="shadow-none">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center ">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            <>
-              {/* If we are in manual mode and have no transactions, show “ManualEntryTable” + an Excel upload button */}
-              {source === "manual" ? (
-                <div className="space-y-4 ">
-                  <div className="flex items-center gap-4">
-                    <label
-                      htmlFor="excelUpload"
-                      // onClick={() => fileInputRef.current.click()}
-                      className="flex-shrink-0 py-2 px-4 bg-gray-800 text-white rounded-md cursor-pointer"
-                    >
-                      Upload Excel
-                    </label>
-                    <input
-                      id="excelUpload"
-                      type="file"
-                      accept=".xlsx, .csv, .xlsm"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={handleExcelUpload}
-                    />
-                    <Button variant="outline" onClick={handleClear}>
-                      Clear
-                    </Button>
-
-                    <p className="text-sm text-gray-500">
-                      or manually add rows below
-                    </p>
-                  </div>
-
-                  {/* Show ManualEntryTable (simple table where user can add row by row) */}
-                  <ManualTallyTable
-                    initialData={dataToRender}
-                    columnsProp={
-                      source === "manual" && excelHeaders.length > 0
-                        ? excelHeaders.map((h) => h.field)
-                        : defaultColumns[selectedVoucher]
-                    }
-                    originalHeaders={excelHeaders}
-                    handleUpload={handleManualEntriesSubmit}
-                    setCompanyName={handleCompanyNameChange}
-                    companyName={companyName}
-                  />
-                </div>
-              ) : transactions.length > 0 ? (
-                // Otherwise, show the TallyTable with the “transactions” we have
-                <TallyTable
-                  data={dataToRender}
-                  title={
-                    source === "manual"
-                      ? "Manual Transactions"
-                      : `Tally ${selectedVoucher} Voucher`
-                  }
-                  subtitle=""
-                  handleUpload={handleUploadClick}
-                  setCompanyName={handleCompanyNameChange}
-                  companyName={companyName}
-                  selectedVoucher={selectedVoucher}
-                  caseId={caseId}
-                  handleLedgerImport={handleLedgerImport}
-                  selectedBankLedger={selectedBankLedger}
-                  setSelectedBankLedger={setSelectedBankLedger}
-                  isEmptyLedgersSelected={isEmptyLedgersSelected}
-                  setIsEmptyLedgersSelected={setIsEmptyLedgersSelected}
-                  port={port}
-                  setPort={setPort}
-                />
-              ) : (
-                // Fallback if not manual and no data
-                source !== "manual" && (
-                  <div className="text-center py-6 text-gray-500">
-                    No transactions available
-                  </div>
-                )
-              )}
-            </>
-          )}
-        </CardContent>
-
-
-
-        {/* Confirmation Modal */}
-        <Dialog open={confirmationModal} onOpenChange={setConfirmationModal}>
-          <DialogContent className="min-w-[500px] max-w-[40%]">
-            <DialogHeader>
-              <DialogTitle>Confirm Tally Import</DialogTitle>
-              <DialogDescription>
-                <p className="mt-4 text-lg">
-                  {`You are about to import ${tallyUploadData.length} ${selectedVoucher === "Ledgers" ? "ledgers" : "transactions"
-                    }
-                  to Tally. Are you sure you want to proceed?`}
-                </p>
-                <p className="my-4 text-sm text-gray-500">
-                  Note: Already uploaded transactions will not be uploaded
-                  again.
-                </p>
-
-                {/* Show a dropdown for selecting tally version */}
-                {selectedVoucher === "Ledgers" && (
-                  <Select
-                    onValueChange={setTallyVersion}
-                    value={tallyVersion}
-                    className="w-1/2"
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Tally Version" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["TallyPrime", "TallyERP"].map((version) => (
-                        <SelectItem key={version} value={version}>
-                          {version}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setConfirmationModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={loading2}
-                variant="default"
-                onClick={handleUploadAfterConfirmation}
-              >
-                {loading2 ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  "Confirm"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Show summary of Tally upload if there are any failed transactions */}
-        <Dialog
-          open={failedTransactions.length > 0 || successIds.length > 0}
-          onOpenChange={setFailedTransactions}
-        >
-          <DialogContent className="min-w-[500px] max-w-[40%] max-h-[90%] overflow-y-auto">
-            <DialogHeader />
-            <DialogDescription>{tallyUploadResponseStats()}</DialogDescription>
-            <DialogFooter className="sticky bottom-0">
-              <Button
-                variant="default"
-                onClick={() => {
-                  setFailedTransactions([]);
-                  setSuccessIds([]);
-                }}
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* A warning dialog to let user know that tally is closed so please start it */}
-
-        <AlertDialog open={showTallyWarning}>
-          {/* <AlertDialogTrigger>Open</AlertDialogTrigger> */}
-          <AlertDialogContent>
-            <form onSubmit={recheckTallystatus}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Alert</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tally is not running, please start tally to continue.
-                  {/*  */}
-                  <div className="mt-4 max-w-xl flex gap-x-4 items-center">
-                    <label className="whitespace-nowrap">Port Number:</label>
-                    <Input
-                      type="number"
-                      value={port}
-                      onChange={handlePortChange}
-                      placeholder="Enter Port Number"
-                    />
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className={"mt-4"}>
-                {/* <AlertDialogCancel>Cancel</AlertDialogCancel> */}
-                <AlertDialogAction onClick={goToSummary}>
-                  Go Back
-                </AlertDialogAction>
-                <Button type="submit" variant="default" className="">
-                  <AlertDialogAction onClick={recheckTallystatus}>
-                    Retry
-                  </AlertDialogAction>
-                </Button>
-              </AlertDialogFooter>
-            </form>
-          </AlertDialogContent>
-        </AlertDialog>
-      </Card>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 // src/main/ipc/invoiceIpc.js
 
 const { ipcMain } = require("electron");
+const { eq } = require('drizzle-orm');
 const DatabaseManager = require("../db/db");
 const { invoices } = require("../db/schema/Invoice");
 const { invoiceItems } = require("../db/schema/InvoiceItems"); // Assuming you have a schema for invoice items
@@ -247,7 +248,7 @@ function registerInvoiceGeneratorIpc() {
   // });
 }
 
-function registerInvoiceItemsIpc(ipcMain) {
+function registerInvoiceItemsIpc() {
   // Handle adding invoice items
   ipcMain.handle("add-invoice-items", async (event, items, invoiceId) => {
     try {
@@ -298,6 +299,7 @@ function registerInvoiceItemsIpc(ipcMain) {
     }
   });
 
+  ipcMain.removeHandler("invoiceItem:getAll");
   ipcMain.handle("invoiceItem:getAll", async (event, invoiceId) => {
     try {
       if (!invoiceId) {
@@ -312,7 +314,7 @@ function registerInvoiceItemsIpc(ipcMain) {
       const items = await db
         .select()
         .from(invoiceItems)
-        .where("invoiceId", "=", invoiceId);
+        .where(eq(invoiceItems.invoiceId, invoiceId));
 
       return {
         success: true,
@@ -325,47 +327,7 @@ function registerInvoiceItemsIpc(ipcMain) {
         error: error.message,
       };
     }
-  });
-
-  // ipcMain.handle("get-invoice-items", async (event, invoiceId) => {
-  //   try {
-  //     console.log(
-  //       `Received get-invoice-items request for invoice: ${invoiceId}`
-  //     );
-
-  //     // If invoiceId is provided, fetch items for that specific invoice
-  //     if (invoiceId) {
-  //       const result = await db
-  //         .select({
-  //           id: invoiceItems.id,
-  //           invoiceId: invoiceItems.invoiceId,
-  //           itemId: invoiceItems.itemId,
-  //           itemDetails: invoiceItems.itemDetails,
-  //           quantity: invoiceItems.quantity,
-  //           rate: invoiceItems.rate,
-  //           amount: invoiceItems.amount,
-  //           // You can join with items table if needed
-  //         })
-  //         .from(invoiceItems)
-  //         .where(eq(invoiceItems.invoiceId, invoiceId));
-
-  //       console.log(
-  //         `Retrieved ${result.length} invoice items for invoice #${invoiceId}`
-  //       );
-  //       return { success: true, invoiceItems: result };
-  //     }
-  //     // If no invoiceId provided, fetch all invoice items
-  //     else {
-  //       const result = await db.select().from(invoiceItems);
-
-  //       console.log(`Retrieved ${result.length} invoice items from db`);
-  //       return { success: true, invoiceItems: result };
-  //     }
-  //   } catch (err) {
-  //     console.error("Get Invoice Items error:", err);
-  //     return { success: false, error: err.message };
-  //   }
-  // });
+  })
 }
 
 module.exports = { registerInvoiceGeneratorIpc, registerInvoiceItemsIpc };

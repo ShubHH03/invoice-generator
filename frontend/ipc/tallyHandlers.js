@@ -19,7 +19,7 @@ const { tallyVoucher } = require("../db/schema/TallyVoucher");
 
 function registerTallyIpc() {
   const db = databaseManager.getInstance().getDatabase();
-  log.info("Database instance : ", db);
+  // log.info("Database instance : ", db);
 
   ipcMain.handle(
     "get-tally-voucher-transactions",

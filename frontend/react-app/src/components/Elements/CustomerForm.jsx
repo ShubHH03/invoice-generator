@@ -288,8 +288,8 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                 type="radio"
                 name="gstApplicable"
                 value="yes"
-                checked={formData.gstApplicable === "yes"}
-                onChange={() => handleInputChange("gstApplicable", "yes")}
+                checked={formData.gstApplicable === true}
+                onChange={() => handleInputChange("gstApplicable", true)}
               />
               <span>Yes</span>
             </label>
@@ -298,14 +298,14 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
                 type="radio"
                 name="gstApplicable"
                 value="no"
-                checked={formData.gstApplicable === "no"}
-                onChange={() => handleInputChange("gstApplicable", "no")}
+                checked={formData.gstApplicable === false}
+                onChange={() => handleInputChange("gstApplicable", false)}
               />
               <span>No</span>
             </label>
           </div>
 
-          {formData.gstApplicable === "yes" && (
+          {formData.gstApplicable && (
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
                 <Label className="text-sm font-medium">GSTIN/UIN</Label>

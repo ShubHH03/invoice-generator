@@ -299,7 +299,7 @@ function registerInvoiceItemsIpc() {
     }
   });
 
-  ipcMain.removeHandler("invoiceItem:getAll");
+  // ipcMain.removeHandler("invoiceItem:getAll");
   ipcMain.handle("invoiceItem:getAll", async (event, invoiceId) => {
     try {
       if (!invoiceId) {
@@ -309,7 +309,7 @@ function registerInvoiceItemsIpc() {
         };
       }
 
-      console.log("Fetching items for invoiceId:", invoiceId);
+      // console.log("Fetching items for invoiceId:", invoiceId);
       // Fetch items for the given invoice ID
       const items = await db
         .select()

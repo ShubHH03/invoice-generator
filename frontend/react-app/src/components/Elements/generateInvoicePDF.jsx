@@ -494,12 +494,12 @@ export const generateInvoicePDF = (invoice) => {
   // Adjusted column widths to fit the page
   const colWidths = {
     slNo: 5,
-    description: 90,
+    description: 100,
     hsn: 20,
     quantity: 15,
-    rate: 20,
+    rate: 15,
     per: 10,
-    amount: 30,
+    amount: 25,
   };
 
   // Function to draw table header - we'll need this for each page
@@ -635,12 +635,13 @@ export const generateInvoicePDF = (invoice) => {
   // Only add the footer elements on the last page
   // Check if we're on the last page before drawing summary content
   if (currentPage === Math.ceil(itemsToDisplay.length / itemsPerPage)) {
-    // Calculate how much space we have left on this page
     // Get the current Y position after drawing all items
+    // This will be different based on how many items are on the last page
     const currentLastPageItems =
       itemsToDisplay.length % itemsPerPage || itemsPerPage;
     const lastPageItemsHeight = currentLastPageItems * itemHeight;
 
+    // For the last page, when drawing the footer, use this starting point:
     let footerStartY;
 
     if (currentPage === 1) {
@@ -649,20 +650,6 @@ export const generateInvoicePDF = (invoice) => {
     } else {
       // If we're on a subsequent page
       footerStartY = margin + tableHeaderHeight + lastPageItemsHeight;
-    }
-
-    // Estimate space needed for footer elements
-    // This includes tax rows, amount in words, tax table, declaration, etc.
-    const estimatedFooterHeight = 180; // Adjust this based on your tax table size
-
-    // Check if we have enough space for footer
-    const remainingSpace = pageHeight - footerStartY - margin;
-
-    // If not enough space, add a new page
-    if (remainingSpace < estimatedFooterHeight) {
-      doc.addPage();
-      currentPage++;
-      footerStartY = margin + 10; // Start at top of new page with small margin
     }
 
     // Output CGST and SGST rows
@@ -875,15 +862,8 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(numberToWords(totals.totalTax), margin + 80, taxWordsY);
 
     // Declaration section
+    const declarationY = taxWordsY + 15;
     const declarationHeight = 20;
-    let declarationY = taxWordsY + 15;
-
-    // Check if declaration would go off page
-    if (declarationY + declarationHeight + 30 > pageHeight - margin) {
-      // Not enough space, add a new page
-      doc.addPage();
-      declarationY = margin + 10;
-    }
 
     doc.rect(
       margin,

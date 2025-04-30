@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { React, useState, useEffect } from "react";
 import { Search, Plus, Loader2 } from "lucide-react";
 import {
   Card,
@@ -19,6 +19,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 import { Checkbox } from "../ui/checkbox";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Pagination,
@@ -69,63 +70,19 @@ const Company = () => {
     "totalInvoiceAmount",
   ];
 
-  // useEffect(() => {
-  //   const fetchCompanies = async () => {
-  //     setIsLoading(true);
-  //     try {
-  //       const response = await window.electron.invoke(
-  //         "get-company-with-invoices"
-  //       );
-  //       console.log("Companies with invoices response:", response);
-
-  //       if (response.success) {
-  //         const companiesData = response.companies || [];
-  //         console.log("Companies data with invoice totals:", companiesData);
-
-  //         // Format companies with invoice data
-  //         const formattedCompanies = companiesData.map((company) => ({
-  //           id: company.id,
-  //           companyName: company.companyName || "",
-  //           companyType: company.companyType || "",
-  //           email: company.email || "",
-  //           contactNo: company.contactNo || "",
-  //           gstApplicable: company.gstApplicable || "No",
-  //           gstin: company.gstin || "N/A",
-  //           invoiceCount: company.invoiceCount || 0,
-  //           totalInvoiceAmount: parseFloat(company.totalInvoiceAmount) || 0,
-  //         }));
-
-  //         // Set the data
-  //         setCompanyData(formattedCompanies);
-  //         setFilteredData(formattedCompanies);
-
-  //         // Set columns based on our predefined order
-  //         setColumns(columnOrder);
-  //       } else {
-  //         console.error("Failed to fetch companies:", response.error);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching companies:", error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-
-  //   fetchCompanies();
-  // }, []);
   useEffect(() => {
     const fetchCompanies = async () => {
       setIsLoading(true);
       try {
-        // Using the electron API from preload.js to get companies
-        const response = await window.electron.getCompany();
-        console.log("Companies API response:", response);
+        // Using the endpoint to get companies with invoice data
+        const response = await window.electron.getCompanyWithInvoices();
+        console.log("Companies with invoices response:", response);
 
         if (response.success) {
           const companiesData = response.companies || [];
-          console.log("Companies data:", companiesData);
+          console.log("Companies data with invoice totals:", companiesData);
 
-          // Format companies if needed
+          // Format companies with invoice data
           const formattedCompanies = companiesData.map((company) => ({
             id: company.id,
             companyName: company.companyName || "",
@@ -134,6 +91,8 @@ const Company = () => {
             contactNo: company.contactNo || "",
             gstApplicable: company.gstApplicable || "No",
             gstin: company.gstin || "N/A",
+            invoiceCount: company.invoiceCount || 0,
+            totalInvoiceAmount: parseFloat(company.totalInvoiceAmount) || 0,
           }));
 
           // Set the data
@@ -236,8 +195,8 @@ const Company = () => {
   const handleSaveCompany = async (companyData) => {
     try {
       // Call API to save the company
-      // After saving, refresh the companies list
-      const response = await window.electron.getCompany();
+      // After saving, refresh the companies list with invoice data
+      const response = await window.electron.getCompanyWithInvoices();
       if (response.success) {
         setCompanyData(response.companies || []);
         setFilteredData(response.companies || []);

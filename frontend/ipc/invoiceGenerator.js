@@ -166,7 +166,7 @@ function registerInvoiceGeneratorIpc() {
   ipcMain.handle("get-company-with-invoices", async () => {
     try {
       // First get all companies
-      log.info("Fetching all companies...");
+      console.log("Fetching all companies with invoice data...");
       const allCompanies = await db.select().from(companies);
 
       // For each company, get the total invoice amount

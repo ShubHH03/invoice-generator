@@ -58,7 +58,7 @@ const Items = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [itemFormOpen, setItemFormOpen] = useState(false);
   const [columns, setColumns] = useState([]);
-  const [refreshCounter, setRefreshCounter] = useState(0); // New state for forcing refresh
+  const [refreshCounter, setRefreshCounter] = useState(0); // State for forcing refresh
 
   const rowsPerPage = 10;
 
@@ -85,13 +85,17 @@ const Items = () => {
           unit: item.unit || "",
         }));
 
+        // Sort items in descending order (newest first)
+        // Assuming the ID is incremental, higher ID = newer item
+        const sortedItems = formattedItems.sort((a, b) => b.id - a.id);
+
         // Set the data
-        setItemData(formattedItems);
-        setFilteredData(formattedItems);
+        setItemData(sortedItems);
+        setFilteredData(sortedItems);
 
         // Dynamically determine columns from first item
-        if (formattedItems.length > 0) {
-          setColumns(Object.keys(formattedItems[0]));
+        if (sortedItems.length > 0) {
+          setColumns(Object.keys(sortedItems[0]));
         }
       } else {
         console.error("Failed to fetch items:", response.error);
@@ -214,24 +218,18 @@ const Items = () => {
     return pageNumbers;
   };
 
-  // Handler for saving the item data - FIXED: uses refreshCounter to trigger a re-fetch
-  const handleSaveItem = async (formData) => {
+  // Handler for saving the item data - triggers a re-fetch
+  const handleSaveItem = async (itemData) => {
     try {
+      // Close the form modal
       setItemFormOpen(false);
-      setIsLoading(true);
 
-      const response = await window.electron.saveItem(formData);
+      // Increment the refreshCounter to trigger a re-fetch
+      setRefreshCounter((prev) => prev + 1);
 
-      if (response.success) {
-        console.log("Item saved successfully");
-        await fetchItems(); // Refresh the list only after a successful save
-      } else {
-        console.error("Failed to save item:", response.error);
-      }
+      console.log("Item saved, triggering refresh");
     } catch (error) {
-      console.error("Error saving item:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error refreshing items list:", error);
     }
   };
 

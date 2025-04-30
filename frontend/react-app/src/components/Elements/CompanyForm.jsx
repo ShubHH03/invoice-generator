@@ -79,6 +79,12 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     signature: null,
   });
 
+  // Add state for image previews
+  const [imagePreviews, setImagePreviews] = useState({
+    logo: null,
+    signature: null,
+  });
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -92,6 +98,23 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
       ...prev,
       [field]: file,
     }));
+
+    // Generate preview for the selected image
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreviews((prev) => ({
+          ...prev,
+          [field]: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreviews((prev) => ({
+        ...prev,
+        [field]: null,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -156,6 +179,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
           <DialogTitle>Create New Company</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+
           <div className="flex items-center space-x-4">
             <Label className="text-sm font-medium">Company Type</Label>
 
@@ -166,9 +190,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   name="companyType"
                   value="manufacturer"
                   checked={formData.companyType === "manufacturer"}
-                  onChange={() =>
-                    handleInputChange("companyType", "manufacturer")
-                  }
+                  onChange={() => handleInputChange("companyType", "manufacturer")}
                 />
                 <span>Manufacturer</span>
               </label>
@@ -194,6 +216,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               </label>
             </div>
           </div>
+
           <div className="flex space-x-4">
             <div className="flex flex-col space-y-1 w-1/2">
               <Label className="text-sm font-medium">Company Name</Label>
@@ -203,14 +226,6 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                 onChange={(e) =>
                   handleInputChange("companyName", e.target.value)
                 }
-              />
-            </div>
-            <div className="flex flex-col space-y-1 w-1/2">
-              <Label className="text-sm font-medium">Company Logo</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileChange("logo", e.target.files[0])}
               />
             </div>
             <div className="flex flex-col space-y-1 w-1/2">
@@ -228,6 +243,68 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   <SelectItem value="eur">EUR - Euro</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="flex space-x-4">
+            <div className="flex flex-col space-y-1 w-1/2">
+              <Label className="text-sm font-medium">Company Logo</Label>
+              <div className="flex flex-col space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange("logo", e.target.files[0])}
+                />
+                {imagePreviews.logo && (
+                  <div className="mt-2 border rounded p-2 relative">
+                    <img
+                      src={imagePreviews.logo}
+                      alt="Company Logo Preview"
+                      className="max-h-32 max-w-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center"
+                      onClick={() => {
+                        handleFileChange("logo", null);
+                        setImagePreviews((prev) => ({ ...prev, logo: null }));
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col space-y-1 w-1/2">
+              <Label className="text-sm font-medium">Authorized Signature</Label>
+              <div className="flex flex-col space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange("signature", e.target.files[0])}
+                />
+                {imagePreviews.signature && (
+                  <div className="mt-2 border rounded p-2 relative">
+                    <img
+                      src={imagePreviews.signature}
+                      alt="Signature Preview"
+                      className="max-h-32 max-w-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center"
+                      onClick={() => {
+                        handleFileChange("signature", null);
+                        setImagePreviews((prev) => ({ ...prev, signature: null }));
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -398,18 +475,6 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                   />
                 </div>
               </div>
-              <div className="flex flex-col space-y-1 w-1/2">
-                <Label className="text-sm font-medium">
-                  Authorized Signature
-                </Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    handleFileChange("signature", e.target.files[0])
-                  }
-                />
-              </div>
             </div>
           </div>
         </form>
@@ -426,4 +491,4 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
   );
 };
 
-export default CompanyForm;
+  export default CompanyForm;

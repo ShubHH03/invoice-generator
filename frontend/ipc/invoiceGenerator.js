@@ -1,10 +1,13 @@
 // src/main/ipc/invoiceIpc.js
 
 const { ipcMain } = require("electron");
-const { eq } = require('drizzle-orm');
+const { eq } = require("drizzle-orm");
 const DatabaseManager = require("../db/db");
 const { invoices } = require("../db/schema/Invoice");
-const { invoiceItems } = require("../db/schema/InvoiceItems"); // Assuming you have a schema for invoice items
+const { invoiceItems } = require("../db/schema/InvoiceItems");
+const { companies } = require("../db/schema/Company");
+const { customers } = require("../db/schema/Customer");
+const { sql } = require("drizzle-orm");
 const dbManager = DatabaseManager.getInstance();
 const db = dbManager.getDatabase();
 console.log("Database instance initialized:", !!db);
@@ -156,6 +159,40 @@ function registerInvoiceGeneratorIpc() {
         success: false,
         error: error.message,
       };
+    }
+  });
+
+  // In your main.js or API handler file
+  ipcMain.handle("get-company-with-invoices", async () => {
+    try {
+      // First get all companies
+      log.info("Fetching all companies...");
+      const allCompanies = await db.select().from(companies);
+
+      // For each company, get the total invoice amount
+      const companiesWithInvoices = await Promise.all(
+        allCompanies.map(async (company) => {
+          // Get sum of all invoice amounts for this company
+          const invoiceTotals = await db
+            .select({
+              totalAmount: sql`COALESCE(SUM(${invoices.totalAmount}), 0)`,
+              invoiceCount: sql`COUNT(${invoices.id})`,
+            })
+            .from(invoices)
+            .where(eq(invoices.companyId, company.id));
+
+          return {
+            ...company,
+            totalInvoiceAmount: invoiceTotals[0]?.totalAmount || 0,
+            invoiceCount: invoiceTotals[0]?.invoiceCount || 0,
+          };
+        })
+      );
+
+      return { success: true, companies: companiesWithInvoices };
+    } catch (error) {
+      console.error("Error fetching companies with invoice data:", error);
+      return { success: false, error: error.message };
     }
   });
 
@@ -327,7 +364,7 @@ function registerInvoiceItemsIpc() {
         error: error.message,
       };
     }
-  })
+  });
 }
 
 module.exports = { registerInvoiceGeneratorIpc, registerInvoiceItemsIpc };

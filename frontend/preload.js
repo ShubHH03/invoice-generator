@@ -20,12 +20,13 @@ contextBridge.exposeInMainWorld("electron", {
   // getInvoiceItems: (invoiceId) =>
   //   ipcRenderer.invoke("get-invoice-items", invoiceId),
 
-  getAllInvoiceItems: (invoiceId) => ipcRenderer.invoke("invoiceItem:getAll", invoiceId),
+  getAllInvoiceItems: (invoiceId) =>
+    ipcRenderer.invoke("invoiceItem:getAll", invoiceId),
 
   getAllInvoices: () => ipcRenderer.invoke("invoice:getAll"),
   getInvoiceById: (id) => ipcRenderer.invoke("invoice:getById", id),
-  getCustomerbyId: (id) => ipcRenderer.invoke("customer:getById", id),
 
   getInvoiceItems: (invoiceId) =>
     ipcRenderer.invoke("get-invoice-items", invoiceId),
+  getCompanyWithInvoices: () => ipcRenderer.invoke("get-company-with-invoices"),
 });

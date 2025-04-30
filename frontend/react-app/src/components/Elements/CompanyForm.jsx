@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { useToast } from "../../hooks/use-toast";
 
 const stateCityMapping = {
   "andhra pradesh": ["Visakhapatnam", "Vijayawada", "Guntur"],
@@ -61,6 +62,8 @@ const stateCityMapping = {
 const indianStates = Object.keys(stateCityMapping);
 
 const CompanyForm = ({ open, onOpenChange, onSave }) => {
+  const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
     companyType: "manufacturer",
     companyName: "",
@@ -117,8 +120,127 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
     }
   };
 
+  const validateForm = () => {
+    // Check required fields
+    if (!formData.companyName || formData.companyName.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please enter company name",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.gstApplicable) {
+      if (!formData.gstin || formData.gstin.trim() === "") {
+        toast({
+          title: "Alert!",
+          description: "Please enter GSTIN/UIN",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!formData.stateCode || formData.stateCode.trim() === "") {
+        toast({
+          title: "Alert!",
+          description: "Please enter state code",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    if (!formData.country || formData.country.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please select a country",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.addressLine1 || formData.addressLine1.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please enter address line 1",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.state || formData.state.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please select a state",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.city || formData.city.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please select a city",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.email || formData.email.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please enter email address",
+        variant: "destructive",
+      });
+      return false;
+    } else if (!validateEmail(formData.email)) {
+      toast({
+        title: "Alert!",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.contactNo || formData.contactNo.trim() === "") {
+      toast({
+        title: "Alert!",
+        description: "Please enter contact number",
+        variant: "destructive",
+      });
+      return false;
+    } else if (!validatePhone(formData.contactNo)) {
+      toast({
+        title: "Alert!",
+        description: "Please enter a valid contact number",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check GST-specific fields when GST is applicable
+
+    return true;
+  };
+
+  const validatePhone = (phone) => {
+    const re = /^[0-9]{10}$/;  // Only 10 digits, no other characters allowed
+    return re.test(String(phone));
+  };
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       // Create a copy of formData to modify
@@ -149,13 +271,54 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
       const result = await window.electron.addCompany(dataToSend);
 
       if (result.success) {
+        toast({
+          title: "Success",
+          description: "Company saved successfully",
+          variant: "success",
+        });
         console.log("Company saved:", result.result);
+
+        // Reset form data
+        setFormData({
+          companyType: "manufacturer",
+          companyName: "",
+          currency: "inr",
+          gstApplicable: false,
+          gstin: "",
+          stateCode: "",
+          country: "",
+          addressLine1: "",
+          addressLine2: "",
+          state: "",
+          city: "",
+          email: "",
+          contactNo: "",
+          logo: null,
+          signature: null,
+        });
+
+        // Reset image previews
+        setImagePreviews({
+          logo: null,
+          signature: null,
+        });
+
         if (onSave) onSave(result.result);
         onOpenChange(false);
       } else {
-        console.error("Failed to save item:", result.error);
+        toast({
+          title: "Error",
+          description: result.error || "Failed to save company",
+          variant: "destructive",
+        });
+        console.error("Failed to save company:", result.error);
       }
     } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
       console.error("Error in form submission:", error);
     }
   };
@@ -178,10 +341,10 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
         <DialogHeader>
           <DialogTitle>Create New Company</DialogTitle>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-4">
 
           <div className="flex items-center space-x-4">
-            <Label className="text-sm font-medium">Company Type</Label>
+            <Label className="text-sm font-medium">Company Type*</Label>
 
             <div className="flex space-x-4">
               <label className="flex items-center space-x-2">
@@ -219,7 +382,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
           <div className="flex space-x-4">
             <div className="flex flex-col space-y-1 w-1/2">
-              <Label className="text-sm font-medium">Company Name</Label>
+              <Label className="text-sm font-medium">Company Name*</Label>
               <Input
                 placeholder="Company Name"
                 value={formData.companyName}
@@ -229,7 +392,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               />
             </div>
             <div className="flex flex-col space-y-1 w-1/2">
-              <Label className="text-sm font-medium">Currency</Label>
+              <Label className="text-sm font-medium">Currency*</Label>
               <Select
                 value={formData.currency}
                 onValueChange={(value) => handleInputChange("currency", value)}
@@ -309,7 +472,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
           </div>
 
           <div className="flex items-center space-x-2 mb-4">
-            <Label className="text-sm font-medium">Is GST Applicable?</Label>
+            <Label className="text-sm font-medium">Is GST Applicable?*</Label>
             <input
               type="radio"
               name="gstApplicable"
@@ -331,7 +494,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
           {formData.gstApplicable && (
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">GSTIN/UIN</Label>
+                <Label className="text-sm font-medium">GSTIN/UIN*</Label>
                 <Input
                   placeholder="GST Number"
                   value={formData.gstin}
@@ -340,7 +503,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               </div>
 
               <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">State Code</Label>
+                <Label className="text-sm font-medium">State Code*</Label>
                 <Input
                   placeholder="State Code"
                   value={formData.stateCode}
@@ -354,7 +517,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
           <div className="flex flex-col space-y-3">
             <div className="flex flex-col space-y-1">
-              <Label className="text-sm font-medium">Country/Region</Label>
+              <Label className="text-sm font-medium">Country/Region*</Label>
               <Select
                 value={formData.country}
                 onValueChange={(value) => handleInputChange("country", value)}
@@ -372,10 +535,10 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
             <div className="flex space-x-4">
               <div className="flex flex-col space-y-1 w-1/2">
-                <Label className="text-sm font-medium">Address Line 1</Label>
+                <Label className="text-sm font-medium">Address Line 1*</Label>
                 <Textarea
                   placeholder="Street Address, Building Name"
-                  rows={2}
+                  rows={1}
                   value={formData.addressLine1}
                   onChange={(e) =>
                     handleInputChange("addressLine1", e.target.value)
@@ -387,7 +550,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
                 <Label className="text-sm font-medium">Address Line 2</Label>
                 <Textarea
                   placeholder="Locality, Area"
-                  rows={2}
+                  rows={1}
                   value={formData.addressLine2}
                   onChange={(e) =>
                     handleInputChange("addressLine2", e.target.value)
@@ -398,7 +561,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">State</Label>
+                <Label className="text-sm font-medium">State*</Label>
                 <Select
                   value={formData.state}
                   onValueChange={(value) => handleInputChange("state", value)}
@@ -420,7 +583,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               </div>
 
               <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">City</Label>
+                <Label className="text-sm font-medium">City*</Label>
                 <Select
                   value={formData.city}
                   onValueChange={(value) => handleInputChange("city", value)}
@@ -442,7 +605,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
             <div className="flex space-x-4">
               <div className="flex flex-col space-y-1 w-1/2">
                 <div className="flex items-center space-x-1">
-                  <Label className="text-sm font-medium">Email Address</Label>
+                  <Label className="text-sm font-medium">Email Address*</Label>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -459,7 +622,7 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
 
               <div className="flex flex-col space-y-1 w-1/2">
                 <div className="flex items-center space-x-1">
-                  <Label className="text-sm font-medium">Contact No.</Label>
+                  <Label className="text-sm font-medium">Contact No.*</Label>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -477,18 +640,22 @@ const CompanyForm = ({ open, onOpenChange, onSave }) => {
               </div>
             </div>
           </div>
-        </form>
+
+          <div className="text-sm text-gray-500">* Required fields</div>
+          
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="default" onClick={handleSubmit}>
+          <Button variant="default" type="submit" onClick={handleSubmit}>
             Save
           </Button>
         </DialogFooter>
+        </form>
+
       </DialogContent>
     </Dialog>
   );
 };
 
-  export default CompanyForm;
+export default CompanyForm;

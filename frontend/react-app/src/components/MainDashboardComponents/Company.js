@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Phone, Mail, Calendar } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,13 +19,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 import { Checkbox } from "../ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -35,17 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../ui/pagination";
-import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Textarea } from "../ui/textarea";
 import CompanyForm from "../Elements/CompanyForm";
-import { Loader2 } from "lucide-react";
 
 const Company = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,6 +53,8 @@ const Company = () => {
     contactNo: "Contact No",
     gstApplicable: "GST Applicable",
     gstin: "GSTIN",
+    invoiceCount: "Total Invoices",
+    totalInvoiceAmount: "Total Invoice Value (₹)",
   };
 
   // Column order (specify which fields to display and in what order)
@@ -79,8 +65,54 @@ const Company = () => {
     "contactNo",
     "gstApplicable",
     "gstin",
+    "invoiceCount",
+    "totalInvoiceAmount",
   ];
 
+  // useEffect(() => {
+  //   const fetchCompanies = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const response = await window.electron.invoke(
+  //         "get-company-with-invoices"
+  //       );
+  //       console.log("Companies with invoices response:", response);
+
+  //       if (response.success) {
+  //         const companiesData = response.companies || [];
+  //         console.log("Companies data with invoice totals:", companiesData);
+
+  //         // Format companies with invoice data
+  //         const formattedCompanies = companiesData.map((company) => ({
+  //           id: company.id,
+  //           companyName: company.companyName || "",
+  //           companyType: company.companyType || "",
+  //           email: company.email || "",
+  //           contactNo: company.contactNo || "",
+  //           gstApplicable: company.gstApplicable || "No",
+  //           gstin: company.gstin || "N/A",
+  //           invoiceCount: company.invoiceCount || 0,
+  //           totalInvoiceAmount: parseFloat(company.totalInvoiceAmount) || 0,
+  //         }));
+
+  //         // Set the data
+  //         setCompanyData(formattedCompanies);
+  //         setFilteredData(formattedCompanies);
+
+  //         // Set columns based on our predefined order
+  //         setColumns(columnOrder);
+  //       } else {
+  //         console.error("Failed to fetch companies:", response.error);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching companies:", error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchCompanies();
+  // }, []);
   useEffect(() => {
     const fetchCompanies = async () => {
       setIsLoading(true);
@@ -203,10 +235,8 @@ const Company = () => {
 
   const handleSaveCompany = async (companyData) => {
     try {
-      // You would typically call an API to save the company
-      // For example: const result = await window.electron.addCompany(companyData);
-
-      // Refresh the companies list after adding
+      // Call API to save the company
+      // After saving, refresh the companies list
       const response = await window.electron.getCompany();
       if (response.success) {
         setCompanyData(response.companies || []);
@@ -218,6 +248,15 @@ const Company = () => {
     } catch (error) {
       console.error("Error saving company:", error);
     }
+  };
+
+  // Format currency values
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(value);
   };
 
   // Pagination calculations
@@ -340,6 +379,8 @@ const Company = () => {
                                 ? row[column] === "Yes"
                                   ? "Yes"
                                   : "No"
+                                : column === "totalInvoiceAmount"
+                                ? formatCurrency(row[column])
                                 : row[column] || "N/A"}
                             </div>
                           </TableCell>

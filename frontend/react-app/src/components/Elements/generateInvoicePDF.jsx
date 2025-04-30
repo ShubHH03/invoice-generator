@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 
 export const generateInvoicePDF = (invoice) => {
@@ -641,9 +640,9 @@ export const generateInvoicePDF = (invoice) => {
     const currentLastPageItems =
       itemsToDisplay.length % itemsPerPage || itemsPerPage;
     const lastPageItemsHeight = currentLastPageItems * itemHeight;
-    
+
     let footerStartY;
-    
+
     if (currentPage === 1) {
       // If everything is on one page
       footerStartY = tableY + tableHeaderHeight + lastPageItemsHeight;
@@ -651,14 +650,14 @@ export const generateInvoicePDF = (invoice) => {
       // If we're on a subsequent page
       footerStartY = margin + tableHeaderHeight + lastPageItemsHeight;
     }
-    
+
     // Estimate space needed for footer elements
     // This includes tax rows, amount in words, tax table, declaration, etc.
     const estimatedFooterHeight = 180; // Adjust this based on your tax table size
-    
+
     // Check if we have enough space for footer
     const remainingSpace = pageHeight - footerStartY - margin;
-    
+
     // If not enough space, add a new page
     if (remainingSpace < estimatedFooterHeight) {
       doc.addPage();
@@ -878,7 +877,7 @@ export const generateInvoicePDF = (invoice) => {
     // Declaration section
     const declarationHeight = 20;
     let declarationY = taxWordsY + 15;
-    
+
     // Check if declaration would go off page
     if (declarationY + declarationHeight + 30 > pageHeight - margin) {
       // Not enough space, add a new page

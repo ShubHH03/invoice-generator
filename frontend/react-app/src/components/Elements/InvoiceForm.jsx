@@ -85,7 +85,7 @@ const InvoiceForm = () => {
   const [companySelectOpen, setCompanySelectOpen] = useState(false);
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
   const [itemSelectsOpen, setItemSelectsOpen] = useState({});
-  const [termSelectOpen, setTermSelectOpen] = useState(false);
+  // const [termSelectOpen, setTermSelectOpen] = useState(false);
   // const [customers, setCustomers] = useState([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -93,6 +93,12 @@ const InvoiceForm = () => {
   const [invoiceSequence, setInvoiceSequence] = useState("0001");
   const [companySignature, setCompanySignature] = useState(null);
   const [companyInitialsMap, setCompanyInitialsMap] = useState({});
+  // const [paymentTerms, setPaymentTerms] = useState("");
+  const [termSelectOpen, setTermSelectOpen] = useState(false);
+  const [customTerm, setCustomTerm] = useState(""); // track typed input
+
+  const defaultTerms = ["0", "15", "30", "45", "60", "90"];
+
   // Change this line
   const [invoiceNumber, setInvoiceNumber] = useState(""); // Remove the default "INV-000002"
 
@@ -518,43 +524,95 @@ const InvoiceForm = () => {
     setInvoiceSequence(value);
     setInvoiceNumber(`${companyInitials}-${value}`);
   };
+  // Create a new function to find existing items
+  const findExistingItem = (items, itemId) => {
+    return items.findIndex(
+      (item) =>
+        item.details ===
+        dbItems.find((dbItem) => dbItem.id === parseInt(itemId))?.name
+    );
+  };
+
+  // Modify the handleItemSelect function to check for duplicates
   const handleItemSelect = (rowId, itemId) => {
     console.log("Selecting item with ID:", itemId, "for row:", rowId);
 
-    // Find the selected item
+    // Find the selected item from database
     const selectedItem = dbItems.find((item) => item.id === parseInt(itemId));
     console.log("Found item:", selectedItem);
 
-    if (selectedItem) {
-      // Update the items array with selected item details
-      const updatedItems = items.map((item) => {
-        if (item.id === rowId) {
-          // Add debugging to verify HSN value
-          console.log("HSN from selected item:", selectedItem.hsn);
-          return {
-            ...item,
-            id: selectedItem.id,
-            details: selectedItem.name,
-            rate: selectedItem.rate || "0.00",
-            hsn: selectedItem.hsn || "", // Add HSN code from database
-            amount: (
-              (parseFloat(item.quantity) || 1) *
-              (parseFloat(selectedItem.rate) || 0)
-            ).toFixed(2),
-          };
-        }
-        return item;
-      });
+    if (!selectedItem) return;
 
-      console.log("Updated items:", updatedItems);
-      setItems(updatedItems);
+    // Check if this item already exists in our items list
+    const existingItemIndex = findExistingItem(items, itemId);
+
+    if (
+      existingItemIndex !== -1 &&
+      existingItemIndex !== items.findIndex((item) => item.id === rowId)
+    ) {
+      // Item already exists, update its quantity instead of adding a new row
+      const updatedItems = [...items];
+      const existingItem = updatedItems[existingItemIndex];
+
+      // Calculate new quantity (add 1 to existing quantity)
+      const currentQuantity = parseFloat(existingItem.quantity) || 0;
+      const newQuantity = currentQuantity + 1;
+
+      // Update the quantity and recalculate amount
+      updatedItems[existingItemIndex] = {
+        ...existingItem,
+        quantity: newQuantity.toString(),
+        amount: (newQuantity * parseFloat(existingItem.rate || 0)).toFixed(2),
+      };
+
+      // If this was a new empty row, we should remove it
+      if (items.length > 1 && !items.find((i) => i.id === rowId).details) {
+        const filteredItems = updatedItems.filter((item) => item.id !== rowId);
+        setItems(filteredItems);
+      } else {
+        // Otherwise just update the quantities
+        setItems(updatedItems);
+      }
+
+      // Show a notification or feedback that quantity was updated
+      console.log(`Updated quantity for existing item: ${selectedItem.name}`);
 
       // Close this specific item's dropdown
       setItemSelectsOpen((prev) => ({
         ...prev,
         [rowId]: false,
       }));
+
+      return;
     }
+
+    // Item doesn't exist yet, add it normally
+    const updatedItems = items.map((item) => {
+      if (item.id === rowId) {
+        // Add debugging to verify HSN value
+        console.log("HSN from selected item:", selectedItem.hsn);
+        return {
+          ...item,
+          details: selectedItem.name,
+          rate: selectedItem.rate || "0.00",
+          hsn: selectedItem.hsn || "",
+          amount: (
+            (parseFloat(item.quantity) || 1) *
+            (parseFloat(selectedItem.rate) || 0)
+          ).toFixed(2),
+        };
+      }
+      return item;
+    });
+
+    console.log("Updated items:", updatedItems);
+    setItems(updatedItems);
+
+    // Close this specific item's dropdown
+    setItemSelectsOpen((prev) => ({
+      ...prev,
+      [rowId]: false,
+    }));
   };
   const handleCustomerSelect = (customerId) => {
     console.log("Selecting customer with ID:", customerId);
@@ -718,18 +776,20 @@ const InvoiceForm = () => {
 
       const doc = generateInvoicePDF(invoiceForPDF);
 
-      // Step 12: Create blob URL for PDF preview - MODIFIED
       const pdfBlob = doc.output("blob");
+      // Set the MIME type explicitly for the blob
+      const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
+
       // Revoke any existing URL to avoid memory leaks
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
-      const url = URL.createObjectURL(pdfBlob);
+
+      const url = URL.createObjectURL(pdfBlobWithType);
       setPdfUrl(url);
 
       // Step 13: Show download dialog but don't show preview yet
       setShowDownloadDialog(true);
-      setShowPdfPreview(false);
     } catch (error) {
       console.error("Error saving invoice:", error);
       alert(`There was an error saving the invoice: ${error.message}`);
@@ -795,6 +855,9 @@ const InvoiceForm = () => {
       .map((word) => word[0]?.toUpperCase() || "")
       .join("")
       .substring(0, 6); // Changed from 3 to 6 to allow up to 6 characters
+  };
+  const formatPaymentTerms = (value) => {
+    return value ? `Net ${value}` : "Select or enter terms";
   };
 
   return (
@@ -1090,43 +1153,55 @@ const InvoiceForm = () => {
                   </Popover>
                 </div>
 
-                <Label htmlFor="terms" className="w-28 pt-2 ml-6">
-                  Terms
-                </Label>
-                <div className="flex-1 relative">
-                  <Select
-                    value={paymentTerms}
-                    onValueChange={(value) => {
-                      setPaymentTerms(value);
-                      if (invoiceDate) {
-                        const newDueDate = addDays(
-                          new Date(invoiceDate),
-                          parseInt(value)
-                        );
-                        setDueDate(newDueDate);
-                      }
-                    }}
-                    open={termSelectOpen}
-                    onOpenChange={setTermSelectOpen}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder="Select or enter terms"
-                        // 👇 Add this line
-                        children={
-                          paymentTerms ? `Net ${paymentTerms}` : undefined
+                <div className="flex items  -center">
+                  <Label htmlFor="terms" className="w-28 pt-2 ml-6">
+                    Terms
+                  </Label>
+                  <div className="flex  relative w-36">
+                    <Select
+                      value={paymentTerms}
+                      onValueChange={(value) => {
+                        setPaymentTerms(value);
+                        if (invoiceDate) {
+                          const newDueDate = addDays(
+                            new Date(invoiceDate),
+                            parseInt(value)
+                          );
+                          setDueDate(newDueDate);
                         }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="p-0">
-                      <Command className="rounded-md border-none bg-background">
-                        <div className="p-2 border-b flex gap-2">
-                          <div className="relative flex-1">
-                            <CommandInput
-                              placeholder="Enter custom days..."
-                              className="h-10"
-                              onValueChange={(val) => {
-                                const days = parseInt(val);
+                      }}
+                      open={termSelectOpen}
+                      onOpenChange={setTermSelectOpen}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder="payment terms"
+                          defaultValue=""
+                          children={
+                            paymentTerms ? `Net ${paymentTerms}` : undefined
+                          }
+                        />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {/* Custom term (if any) */}
+                        {customTerm && !defaultTerms.includes(customTerm) && (
+                          <SelectItem value={customTerm}>
+                            Net {customTerm} (Custom)
+                          </SelectItem>
+                        )}
+
+                        {/* Search / Input Field */}
+                        <div className="p-2 border-b">
+                          <input
+                            type="number"
+                            placeholder="Enter custom days..."
+                            className="h-10 w-full px-2 border rounded"
+                            value={customTerm}
+                            onChange={(e) => setCustomTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const days = parseInt(e.currentTarget.value);
                                 if (!isNaN(days)) {
                                   setPaymentTerms(days.toString());
                                   if (invoiceDate) {
@@ -1136,37 +1211,25 @@ const InvoiceForm = () => {
                                     );
                                     setDueDate(newDueDate);
                                   }
+                                  setCustomTerm(""); // clear input after enter
                                   setTermSelectOpen(false);
                                 }
-                              }}
-                            />
-                          </div>
+                              }
+                            }}
+                          />
                         </div>
+
+                        {/* Default Terms */}
                         <div className="max-h-[200px] overflow-y-auto">
-                          <CommandGroup>
-                            {["0", "15", "30", "45", "60", "90"].map((term) => (
-                              <CommandItem
-                                key={term}
-                                onSelect={() => {
-                                  setPaymentTerms(term);
-                                  if (invoiceDate) {
-                                    const newDueDate = addDays(
-                                      new Date(invoiceDate),
-                                      parseInt(term)
-                                    );
-                                    setDueDate(newDueDate);
-                                  }
-                                  setTermSelectOpen(false);
-                                }}
-                              >
-                                Net {term}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                          {defaultTerms.map((term) => (
+                            <SelectItem key={term} value={term}>
+                              Net {term}
+                            </SelectItem>
+                          ))}
                         </div>
-                      </Command>
-                    </SelectContent>
-                  </Select>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Label htmlFor="dueDate" className="w-28 pt-2 ml-6">
@@ -1486,51 +1549,6 @@ const InvoiceForm = () => {
                 </Button>
               </div>
             </div>
-            {/* Signature Upload */}
-            {/* <div className="mt-6">
-              <Label htmlFor="signature" className="block mb-2">
-                Authorized Signature
-              </Label>
-              <div className="flex items-start gap-4">
-                <div className="border rounded-md p-4 w-64 h-32 flex flex-col items-center justify-center relative">
-                  {signature ? (
-                    <>
-                      <img
-                        src={signature}
-                        alt="Signature"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full"
-                        onClick={removeSignature}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <div
-                      className="flex flex-col items-center justify-center h-full w-full cursor-pointer"
-                      onClick={triggerFileInput}
-                    >
-                      <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-500">
-                        Click to upload signature
-                      </p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleSignatureUpload}
-                    className="hidden"
-                    accept="image/*"
-                  />
-                </div>
-              </div>
-            </div> */}
           </form>
         </CardContent>
         <CardFooter className="flex gap-2 border-t pt-4 justify-end">
@@ -1563,7 +1581,7 @@ const InvoiceForm = () => {
                 onClick={() => {
                   // Ensure PDF URL exists before showing preview
                   if (pdfUrl) {
-                    setShowPdfPreview(true);
+                    setShowPdfPreview(true); // This should now work after removing the line from handleSubmit
                   } else {
                     alert("PDF preview is not ready yet. Please try again.");
                   }
@@ -1600,16 +1618,11 @@ const InvoiceForm = () => {
           </AlertDialogHeader>
           <div className="flex-1 min-h-[70vh] bg-gray-100 overflow-auto">
             {pdfUrl ? (
-              <iframe
+              <embed
                 src={pdfUrl}
+                type="application/pdf"
                 className="w-full h-full border-0"
                 title="Invoice Preview"
-                key={pdfUrl} // Add key to force re-render when URL changes
-                sandbox="allow-same-origin allow-scripts"
-                onLoad={() => console.log("PDF loaded in iframe")}
-                onError={(e) =>
-                  console.error("Error loading PDF in iframe:", e)
-                }
               />
             ) : (
               <div className="flex items-center justify-center h-full">

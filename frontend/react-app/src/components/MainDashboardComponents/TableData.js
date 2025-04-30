@@ -1,14 +1,34 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Search, Loader2, Plus, HelpCircle } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { cn } from "../../lib/utils"
-import { Checkbox } from "../ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../ui/dialog"
+import { useState, useEffect } from "react";
+import { Search, Loader2, Plus, HelpCircle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "../ui/table";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { cn } from "../../lib/utils";
+import { Checkbox } from "../ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -17,171 +37,154 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "../ui/pagination"
-import { Label } from "../ui/label"
-
+} from "../ui/pagination";
+import { Label } from "../ui/label";
 
 const DataTable = ({ data = [], title }) => {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [filteredData, setFilteredData] = useState(data)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterModalOpen, setFilterModalOpen] = useState(false)
-  const [currentFilterColumn, setCurrentFilterColumn] = useState(null)
-  const [numericFilterModalOpen, setNumericFilterModalOpen] = useState(false)
-  const [currentNumericColumn, setCurrentNumericColumn] = useState(null)
-  const [minValue, setMinValue] = useState("")
-  const [maxValue, setMaxValue] = useState("")
-  const [selectedCategories, setSelectedCategories] = useState([])
-  const [categorySearchTerm, setCategorySearchTerm] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const rowsPerPage = 10
+  // Utility to format camelCase or PascalCase keys into human-readable headers
+  const formatHeader = (key) =>
+    key
+      // insert space between lowercase/number and uppercase letters
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      // uppercase first character
+      .replace(/^./, (str) => str.toUpperCase());
 
-  // Get dynamic columns from first data item
-  const columns = data.length > 0 ? Object.keys(data[0]) : []
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filteredData, setFilteredData] = useState(data);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
+  const [numericFilterModalOpen, setNumericFilterModalOpen] = useState(false);
+  const [currentNumericColumn, setCurrentNumericColumn] = useState(null);
+  const [minValue, setMinValue] = useState("");
+  const [maxValue, setMaxValue] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const rowsPerPage = 10;
 
-  // Determine which columns are numeric
+  // derive column keys dynamically
+  const columns = data.length > 0 ? Object.keys(data[0]) : [];
+
+  // detect numeric columns
   const numericColumns = columns.filter((column) =>
     data.some((row) => {
-      const value = String(row[column])
-      return !isNaN(Number.parseFloat(value)) && !value.includes("-")
-    }),
-  )
+      const val = String(row[column]);
+      return !isNaN(Number.parseFloat(val)) && !val.includes("-");
+    })
+  );
 
   useEffect(() => {
-    setFilteredData(data)
-  }, [data])
+    setFilteredData(data);
+  }, [data]);
 
   const handleSearch = (searchValue) => {
-    setSearchTerm(searchValue)
-    if (searchValue === "") {
-      setFilteredData(data)
-      setCurrentPage(1)
-      return
+    setSearchTerm(searchValue);
+    if (!searchValue) {
+      setFilteredData(data);
+      setCurrentPage(1);
+      return;
     }
 
-    // Calculate totals for numeric columns
-    // const totals = numericColumns.reduce((acc, column) => {
-    //   const total = filteredData.reduce((sum, row) => {
-    //     const value = Number.parseFloat(String(row[column]).replace(/,/g, ""))
-    //     return !isNaN(value) ? sum + value : sum
-    //   }, 0)
-    //   return {
-    //     ...acc,
-    //     [column]: total.toLocaleString(undefined, {
-    //       minimumFractionDigits: 2,
-    //       maximumFractionDigits: 2,
-    //     }),
-    //   }
-    // }, {})
-
-    const columnsToReplace = ["amount", "balance", "debit", "credit"]
+    const columnsToReplace = ["amount", "balance", "debit", "credit"];
     const filtered = filteredData.filter((row) =>
       Object.entries(row).some(([key, value]) => {
+        const strVal = String(value).replace(/,/g, "");
         if (columnsToReplace.includes(key)) {
-          return String(value).replace(/,/g, "").toLowerCase().includes(searchValue.toLowerCase())
+          return strVal.toLowerCase().includes(searchValue.toLowerCase());
         }
-        return String(value).toLowerCase().includes(searchValue.toLowerCase())
-      }),
-    )
+        return String(value).toLowerCase().includes(searchValue.toLowerCase());
+      })
+    );
 
-    setFilteredData(filtered)
-    setCurrentPage(1)
-  }
+    setFilteredData(filtered);
+    setCurrentPage(1);
+  };
 
   const handleCategorySelect = (category) => {
     setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((cat) => cat !== category) : [...prev, category],
-    )
-  }
+      prev.includes(category)
+        ? prev.filter((cat) => cat !== category)
+        : [...prev, category]
+    );
+  };
 
   const handleSelectAll = () => {
-    const visibleCategories = getFilteredUniqueValues(currentFilterColumn)
-    const allSelected = visibleCategories.every((cat) => selectedCategories.includes(cat))
-    setSelectedCategories(allSelected ? [] : visibleCategories)
-  }
+    const visible = getFilteredUniqueValues(currentFilterColumn);
+    const allSelected = visible.every((v) => selectedCategories.includes(v));
+    setSelectedCategories(allSelected ? [] : visible);
+  };
 
   const handleColumnFilter = () => {
-    if (selectedCategories.length === 0) {
-      setFilteredData(data)
+    if (!selectedCategories.length) {
+      setFilteredData(data);
     } else {
-      const filtered = data.filter((row) => selectedCategories.includes(String(row[currentFilterColumn])))
-      setFilteredData(filtered)
+      setFilteredData(
+        data.filter((row) =>
+          selectedCategories.includes(String(row[currentFilterColumn]))
+        )
+      );
     }
-    setCurrentPage(1)
-    setFilterModalOpen(false)
-  }
+    setCurrentPage(1);
+    setFilterModalOpen(false);
+  };
 
   const handleNumericFilter = (columnName, min, max) => {
     const filtered = data.filter((row) => {
-      const value = Number.parseFloat(row[columnName])
-      if (isNaN(value)) return false
-      const meetsMin = min === "" || value >= Number.parseFloat(min)
-      const meetsMax = max === "" || value <= Number.parseFloat(max)
-      return meetsMin && meetsMax
-    })
-    setFilteredData(filtered)
-    setCurrentPage(1)
-  }
+      const value = Number.parseFloat(row[columnName]);
+      if (isNaN(value)) return false;
+      const meetsMin = min === "" || value >= Number.parseFloat(min);
+      const meetsMax = max === "" || value <= Number.parseFloat(max);
+      return meetsMin && meetsMax;
+    });
+    setFilteredData(filtered);
+    setCurrentPage(1);
+  };
 
   const clearFilters = () => {
-    setSearchTerm("")
-    setFilteredData(data)
-    setCurrentPage(1)
-    setMinValue("")
-    setMaxValue("")
-    setSelectedCategories([])
-    setCategorySearchTerm("")
-  }
+    setSearchTerm("");
+    setFilteredData(data);
+    setCurrentPage(1);
+    setMinValue("");
+    setMaxValue("");
+    setSelectedCategories([]);
+    setCategorySearchTerm("");
+  };
 
-  const getUniqueValues = (columnName) => {
-    return [...new Set(data.map((row) => String(row[columnName])))]
-  }
+  const getUniqueValues = (columnName) => [
+    ...new Set(data.map((row) => String(row[columnName]))),
+  ];
 
   const getFilteredUniqueValues = (columnName) => {
-    const uniqueValues = getUniqueValues(columnName)
-    if (!categorySearchTerm) return uniqueValues
-    return uniqueValues.filter((value) => value.toLowerCase().includes(categorySearchTerm.toLowerCase()))
-  }
+    const unique = getUniqueValues(columnName);
+    return categorySearchTerm
+      ? unique.filter((v) =>
+          v.toLowerCase().includes(categorySearchTerm.toLowerCase())
+        )
+      : unique;
+  };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage)
-  const startIndex = (currentPage - 1) * rowsPerPage
-  const endIndex = startIndex + rowsPerPage
-  const currentData = filteredData.slice(startIndex, endIndex)
+  // pagination
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredData.slice(startIndex, endIndex);
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
-    const pageNumbers = []
-    const maxVisiblePages = 5
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i)
-      }
+    const nums = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) nums.push(i);
     } else {
-      pageNumbers.push(1)
-      if (currentPage > 2) {
-        pageNumbers.push("ellipsis")
-      }
-      if (currentPage !== 1 && currentPage !== totalPages) {
-        pageNumbers.push(currentPage)
-      }
-      if (currentPage < totalPages - 1) {
-        pageNumbers.push("ellipsis")
-      }
-      pageNumbers.push(totalPages)
+      nums.push(1);
+      if (currentPage > 2) nums.push("ellipsis");
+      if (currentPage !== 1 && currentPage !== totalPages)
+        nums.push(currentPage);
+      if (currentPage < totalPages - 1) nums.push("ellipsis");
+      nums.push(totalPages);
     }
-    return pageNumbers
-  }
-
-  // Calculate totals for numeric columns
-  // const totals = numericColumns.reduce((acc, column) => {
-  //   const total = filteredData.reduce((sum, row) => {
-  //     const value = Number.parseFloat(row[column])
-  //     return !isNaN(value) ? sum + value : sum
-  //   }, 0)
-  //   return { ...acc, [column]: total.toFixed(2) }
-  // }, {})
+    return nums;
+  };
 
   return (
     <Card>
@@ -199,7 +202,7 @@ const DataTable = ({ data = [], title }) => {
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
             />
-            <Button variant="default" onClick={() => clearFilters()}>
+            <Button variant="default" onClick={clearFilters}>
               Clear Filters
             </Button>
           </div>
@@ -211,9 +214,12 @@ const DataTable = ({ data = [], title }) => {
             <TableHeader>
               <TableRow>
                 {columns.map((column) => (
-                  <TableHead key={column} className="w-10 sticky left-0 bg-white z-10">
+                  <TableHead
+                    key={column}
+                    className="w-10 sticky left-0 bg-white z-10"
+                  >
                     <div className="flex items-center gap-2">
-                      {column.charAt(0).toUpperCase() + column.slice(1).toLowerCase()}
+                      {formatHeader(column)}
                       {column.toLowerCase() !== "description" && (
                         <Button
                           variant="ghost"
@@ -221,13 +227,13 @@ const DataTable = ({ data = [], title }) => {
                           className="h-8 w-8 p-0"
                           onClick={() => {
                             if (numericColumns.includes(column)) {
-                              setCurrentNumericColumn(column)
-                              setNumericFilterModalOpen(true)
+                              setCurrentNumericColumn(column);
+                              setNumericFilterModalOpen(true);
                             } else {
-                              setCurrentFilterColumn(column)
-                              setSelectedCategories([])
-                              setCategorySearchTerm("")
-                              setFilterModalOpen(true)
+                              setCurrentFilterColumn(column);
+                              setSelectedCategories([]);
+                              setCategorySearchTerm("");
+                              setFilterModalOpen(true);
                             }
                           }}
                         >
@@ -247,12 +253,14 @@ const DataTable = ({ data = [], title }) => {
                   </TableCell>
                 </TableRow>
               ) : (
-                currentData.map((row, index) => (
-                  <TableRow key={index}>
+                currentData.map((row, idx) => (
+                  <TableRow key={idx}>
                     {columns.map((column) => (
-                      <TableCell key={column} className="max-w-[200px] group relative">
+                      <TableCell
+                        key={column}
+                        className="max-w-[200px] group relative"
+                      >
                         <div className="truncate">{row[column]}</div>
-                        {/* Tooltip */}
                         {column.toLowerCase() === "description" && (
                           <div className="absolute left-0 top-10 hidden group-hover:block bg-black text-white text-sm rounded p-2 z-50 whitespace-normal min-w-[200px] max-w-[400px]">
                             {row[column]}
@@ -264,16 +272,6 @@ const DataTable = ({ data = [], title }) => {
                 ))
               )}
             </TableBody>
-            {/* <TableFooter>
-              <TableRow>
-                <TableCell>Total</TableCell>
-                  {columns.slice(1).map((column) => (
-                  <TableCell key={column}>
-                    {numericColumns.includes(column) ? totals[column] : ""}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableFooter> */}
           </Table>
         </div>
 
@@ -284,29 +282,38 @@ const DataTable = ({ data = [], title }) => {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    className={cn("cursor-pointer", currentPage === 1 && "pointer-events-none opacity-50")}
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    className={cn(
+                      "cursor-pointer",
+                      currentPage === 1 && "pointer-events-none opacity-50"
+                    )}
                   />
                 </PaginationItem>
-                {getPageNumbers().map((pageNumber, index) => (
-                  <PaginationItem key={index}>
-                    {pageNumber === "ellipsis" ? (
+                {getPageNumbers().map((page, i) => (
+                  <PaginationItem key={i}>
+                    {page === "ellipsis" ? (
                       <PaginationEllipsis />
                     ) : (
                       <PaginationLink
-                        onClick={() => setCurrentPage(pageNumber)}
-                        isActive={currentPage === pageNumber}
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
                         className="cursor-pointer"
                       >
-                        {pageNumber}
+                        {page}
                       </PaginationLink>
                     )}
                   </PaginationItem>
                 ))}
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    className={cn("cursor-pointer", currentPage === totalPages && "pointer-events-none opacity-50")}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(p + 1, totalPages))
+                    }
+                    className={cn(
+                      "cursor-pointer",
+                      currentPage === totalPages &&
+                        "pointer-events-none opacity-50"
+                    )}
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -315,13 +322,15 @@ const DataTable = ({ data = [], title }) => {
         )}
       </CardContent>
 
-      {/* Category Filter Modal - Apple Style */}
+      {/* Category Filter Modal */}
       {filterModalOpen && (
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
-              <p className="text-sm text-gray-600">Make changes to your filter here. Click save when you're done.</p>
+              <p className="text-sm text-gray-600">
+                Make changes to your filter here. Click save when you're done.
+              </p>
             </DialogHeader>
             <Input
               type="text"
@@ -332,7 +341,10 @@ const DataTable = ({ data = [], title }) => {
             />
             <div className="max-h-60 overflow-y-auto space-y-[1px] mb-4">
               {getFilteredUniqueValues(currentFilterColumn).map((value) => (
-                <label key={value} className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer">
+                <label
+                  key={value}
+                  className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                >
                   <Checkbox
                     checked={selectedCategories.includes(value)}
                     onCheckedChange={() => handleCategorySelect(value)}
@@ -345,7 +357,11 @@ const DataTable = ({ data = [], title }) => {
               <Button variant="ghost" onClick={handleSelectAll}>
                 Select All
               </Button>
-              <Button variant="default" className="bg-black hover:bg-gray-800" onClick={handleColumnFilter}>
+              <Button
+                variant="default"
+                className="bg-black hover:bg-gray-800"
+                onClick={handleColumnFilter}
+              >
                 Save changes
               </Button>
             </div>
@@ -353,33 +369,50 @@ const DataTable = ({ data = [], title }) => {
         </Dialog>
       )}
 
+      {/* Numeric Filter Modal */}
       {numericFilterModalOpen && (
-        <Dialog open={numericFilterModalOpen} onOpenChange={setNumericFilterModalOpen}>
+        <Dialog
+          open={numericFilterModalOpen}
+          onOpenChange={setNumericFilterModalOpen}
+        >
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle>Filter {currentNumericColumn}</DialogTitle>
-              <p className="text-sm text-gray-600">Set the minimum and maximum values for the filter.</p>
+              <p className="text-sm text-gray-600">
+                Set the minimum and maximum values for the filter.
+              </p>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Minimum Value</Label>
-                <Input type="number" value={minValue} onChange={(e) => setMinValue(e.target.value)} />
+                <Input
+                  type="number"
+                  value={minValue}
+                  onChange={(e) => setMinValue(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Maximum Value</Label>
-                <Input type="number" value={maxValue} onChange={(e) => setMaxValue(e.target.value)} />
+                <Input
+                  type="number"
+                  value={maxValue}
+                  onChange={(e) => setMaxValue(e.target.value)}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setNumericFilterModalOpen(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setNumericFilterModalOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
                 variant="default"
                 className="bg-black hover:bg-gray-800"
                 onClick={() => {
-                  handleNumericFilter(currentNumericColumn, minValue, maxValue)
-                  setNumericFilterModalOpen(false)
+                  handleNumericFilter(currentNumericColumn, minValue, maxValue);
+                  setNumericFilterModalOpen(false);
                 }}
               >
                 Save changes
@@ -388,17 +421,15 @@ const DataTable = ({ data = [], title }) => {
           </DialogContent>
         </Dialog>
       )}
+
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center">
           <Loader2 className="animate-spin h-8 w-8 text-[#3498db]" />
         </div>
       )}
-
-
     </Card>
-  )
-}
+  );
+};
 
-export default DataTable
-
+export default DataTable;

@@ -262,9 +262,9 @@ const Items = () => {
               />
               <Button variant="default" onClick={() => setItemFormOpen(true)}>
                 <Plus className="h-5 w-5" />
-                New
+                New Item
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>

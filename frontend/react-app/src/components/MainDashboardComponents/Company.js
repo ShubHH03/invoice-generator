@@ -311,7 +311,7 @@ const Company = () => {
                 variant="default"
                 onClick={() => setCompanyFormOpen(true)}
               >
-                <Plus className="h-5 w-5 mr-2" />
+                <Plus className="h-5 w-5" />
                 New Company
               </Button>
               <Button variant="outline" onClick={() => clearFilters()}>

@@ -30,7 +30,7 @@ const CustomerForm = ({ open, onOpenChange, onSave }) => {
     panNumber: "",
     companyName: "",
     currency: "",
-    gstApplicable: "no", // Default value
+    gstApplicable: false, // Default value
     gstin: "",
     stateCode: "",
 

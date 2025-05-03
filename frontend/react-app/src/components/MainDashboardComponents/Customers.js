@@ -252,7 +252,7 @@ const Customers = () => {
                 variant="default"
                 onClick={() => setCustomerFormOpen(true)}
               >
-                <Plus className="h-5 w-5 mr-2" />
+                <Plus className="h-5 w-5" />
                 New Customer
               </Button>
               <Button variant="outline" onClick={() => clearFilters()}>

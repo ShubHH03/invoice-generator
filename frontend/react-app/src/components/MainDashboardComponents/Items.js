@@ -58,55 +58,55 @@ const Items = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [itemFormOpen, setItemFormOpen] = useState(false);
   const [columns, setColumns] = useState([]);
+  const [refreshCounter, setRefreshCounter] = useState(0); // New state for forcing refresh
 
   const rowsPerPage = 10;
 
-  // Fetch data from database
-  useEffect(() => {
-    const fetchItems = async () => {
-      setIsLoading(true);
-      try {
-        // Using the electron API from preload.js to get items
-        const response = await window.electron.getItem();
-        console.log("Items API response:", response);
+  // Moved fetchItems out of useEffect so it can be called from other functions
+  const fetchItems = async () => {
+    setIsLoading(true);
+    try {
+      // Using the electron API from preload.js to get items
+      const response = await window.electron.getItem();
+      console.log("Items API response:", response);
 
-        if (response.success) {
-          const itemsData = response.items || [];
-          console.log("Items data:", itemsData);
+      if (response.success) {
+        const itemsData = response.items || [];
+        console.log("Items data:", itemsData);
 
-          // Format items if needed
-          const formattedItems = itemsData.map((item) => ({
-            id: item.id,
-            name: item.name,
-            hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
-            description: item.description || "",
-            rate:
-              item.sellingPrice !== undefined
-                ? parseFloat(item.sellingPrice)
-                : 0,
-            unit: item.unit || "",
-          }));
+        // Format items if needed
+        const formattedItems = itemsData.map((item) => ({
+          id: item.id,
+          name: item.name,
+          hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
+          description: item.description || "",
+          rate:
+            item.sellingPrice !== undefined ? parseFloat(item.sellingPrice) : 0,
+          unit: item.unit || "",
+        }));
 
-          // Set the data
-          setItemData(formattedItems);
-          setFilteredData(formattedItems);
+        // Set the data
+        setItemData(formattedItems);
+        setFilteredData(formattedItems);
 
-          // Dynamically determine columns from first item
-          if (formattedItems.length > 0) {
-            setColumns(Object.keys(formattedItems[0]));
-          }
-        } else {
-          console.error("Failed to fetch items:", response.error);
+        // Dynamically determine columns from first item
+        if (formattedItems.length > 0) {
+          setColumns(Object.keys(formattedItems[0]));
         }
-      } catch (error) {
-        console.error("Error fetching items:", error);
-      } finally {
-        setIsLoading(false);
+      } else {
+        console.error("Failed to fetch items:", response.error);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching items:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Using refreshCounter as a dependency to trigger re-fetch
+  useEffect(() => {
     fetchItems();
-  }, []);
+  }, [refreshCounter]);
 
   // Determine which columns are numeric
   const numericColumns = columns.filter((column) =>
@@ -214,38 +214,22 @@ const Items = () => {
     return pageNumbers;
   };
 
-  // Handler for saving the item data
+  // Handler for saving the item data - FIXED: uses refreshCounter to trigger a re-fetch
   const handleSaveItem = async (formData) => {
-    // Here you would typically handle saving the new item to the database
-    // After saving, refetch the data to update the table
-    setItemFormOpen(false);
-
-    // Refetch items after adding a new one
-    setIsLoading(true);
     try {
-      const response = await window.electron.getItem();
+      setItemFormOpen(false);
+      setIsLoading(true);
+
+      const response = await window.electron.saveItem(formData);
+
       if (response.success) {
-        const itemsData = response.items || [];
-
-        const formattedItems = itemsData.map((item) => ({
-          id: item.id,
-          name: item.name,
-          hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
-          description: item.description || "",
-          rate:
-            item.sellingPrice !== undefined ? parseFloat(item.sellingPrice) : 0,
-          unit: item.unit || "",
-        }));
-
-        setItemData(formattedItems);
-        setFilteredData(formattedItems);
-
-        if (formattedItems.length > 0) {
-          setColumns(Object.keys(formattedItems[0]));
-        }
+        console.log("Item saved successfully");
+        await fetchItems(); // Refresh the list only after a successful save
+      } else {
+        console.error("Failed to save item:", response.error);
       }
     } catch (error) {
-      console.error("Error refetching items:", error);
+      console.error("Error saving item:", error);
     } finally {
       setIsLoading(false);
     }
@@ -278,9 +262,9 @@ const Items = () => {
               />
               <Button variant="default" onClick={() => setItemFormOpen(true)}>
                 <Plus className="h-5 w-5" />
-                New
+                New Item
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>
@@ -333,7 +317,10 @@ const Items = () => {
                   </TableRow>
                 ) : (
                   currentData.map((row, index) => (
-                    <TableRow key={row.id || index}>
+                    <TableRow
+                      key={row.id || index}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"} // Alternating row colors
+                    >
                       {columns.map((column) => (
                         <TableCell
                           key={column}

@@ -70,7 +70,7 @@ const Dashboard = () => {
       // This group will be open by default
       items: [
         {
-          title: "Ledgers",
+          title: "Sales",
           url: "#",
           icon: Plus,
         },
@@ -139,9 +139,9 @@ const Dashboard = () => {
                   setActiveTab={setActiveTab}
                 />
               )}
-              {activeTab === "Ledgers" && (
+              {activeTab === "Sales" && (
                 <TallyDirectImport
-                  defaultVoucher={"Ledgers"}
+                  defaultVoucher={"Sales"}
                   setActiveTab={setActiveTab}
                 />
               )}

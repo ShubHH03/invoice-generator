@@ -480,6 +480,112 @@ function buildTallyXmlGetAllLedgers({ companyName }) {
   `.trim();
 }
 
+function buildSalesXml({
+  companyName,
+  invoiceDate,
+  effectiveDate,
+  narration,
+  VoucherNumber,
+  RefNumber,
+  customerName,
+  billAmount,
+  incomeLedger,
+  TaxableValue,
+  rateOfCGST,
+  Cgst,
+  amountOfCGST,
+  rateOfSGST,
+  Sgst,
+  amountOfSGST,
+  rateOfIGST,
+  Igst,
+  amountOfIGST,
+}) {
+  companyName = companyName ? companyName.replace(/&/g, "&amp;") : companyName;
+
+  narration = narration ? narration.replace(/&/g, "&amp;") : narration;
+
+  customerName = customerName ? customerName.replace(/&/g, "&amp;") : customerName;
+
+  incomeLedger = incomeLedger ? incomeLedger.replace(/&/g, "&amp;") : incomeLedger;
+
+  return `
+<ENVELOPE>
+    <HEADER>
+        <TALLYREQUEST>Import Data</TALLYREQUEST>
+    </HEADER>
+    <BODY>
+        <IMPORTDATA>
+            <REQUESTDESC>
+                <REPORTNAME>Vouchers</REPORTNAME>
+                <STATICVARIABLES>
+                    <SVCURRENTCOMPANY>${companyName}</SVCURRENTCOMPANY>
+                </STATICVARIABLES>
+            </REQUESTDESC>
+            <REQUESTDATA>
+                <TALLYMESSAGE xmlns:UDF="TallyUDF">
+                    <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+                        <DATE>${invoiceDate}</DATE>
+                        <EFFECTIVEDATE>${effectiveDate}</EFFECTIVEDATE>
+                        <NARRATION>${narration}</NARRATION>
+                        <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+                        <VOUCHERNUMBER>${VoucherNumber}</VOUCHERNUMBER>
+                        <REFERENCE>${RefNumber}</REFERENCE>
+                        <ISINVOICE>Yes</ISINVOICE>
+
+                      
+                        <LEDGERENTRIES.LIST>
+                            <LEDGERNAME>${customerName}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+                            <AMOUNT>${-billAmount}</AMOUNT>
+                        </LEDGERENTRIES.LIST>
+
+                     
+                        <LEDGERENTRIES.LIST>
+                            <LEDGERNAME>${incomeLedger}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                            <AMOUNT>${TaxableValue}</AMOUNT>
+                        </LEDGERENTRIES.LIST>
+
+                        
+                        <LEDGERENTRIES.LIST>
+                            <RATEOFINVOICETAX.LIST TYPE="Number">
+                                <RATEOFINVOICETAX>${rateOfCGST}</RATEOFINVOICETAX>
+                            </RATEOFINVOICETAX.LIST>
+                            <LEDGERNAME>${Cgst}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                            <AMOUNT>${amountOfCGST}</AMOUNT>
+                        </LEDGERENTRIES.LIST>
+
+                   
+                        <LEDGERENTRIES.LIST>
+                            <RATEOFINVOICETAX.LIST TYPE="Number">
+                                <RATEOFINVOICETAX>${rateOfSGST}</RATEOFINVOICETAX>
+                            </RATEOFINVOICETAX.LIST>
+                            <LEDGERNAME>${Sgst}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                            <AMOUNT>${amountOfSGST}</AMOUNT>
+                        </LEDGERENTRIES.LIST>
+
+                    
+                        <LEDGERENTRIES.LIST>
+                            <RATEOFINVOICETAX.LIST TYPE="Number">
+                                <RATEOFINVOICETAX>${rateOfIGST}</RATEOFINVOICETAX>
+                            </RATEOFINVOICETAX.LIST>
+                            <LEDGERNAME>${Igst}</LEDGERNAME>
+                            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                            <AMOUNT>${amountOfIGST}</AMOUNT>
+                        </LEDGERENTRIES.LIST>
+                    </VOUCHER>
+                </TALLYMESSAGE>
+            </REQUESTDATA>
+        </IMPORTDATA>
+    </BODY>
+</ENVELOPE>
+
+  `;
+}
+
 async function fetchLedgerData(companyName) {
   // Define the XML request payload
   const xmlInput = `
@@ -574,5 +680,6 @@ module.exports = {
   buildTallyPrimeLedgerXml,
   buildTallyERPLedgerXml,
   buildTallyXmlGetAllLedgers,
+  buildSalesXml,
   fetchLedgerData,
 };

@@ -17,15 +17,19 @@ contextBridge.exposeInMainWorld("electron", {
   addInvoice: (invoice) => ipcRenderer.invoke("add-invoice", invoice),
   addInvoiceItems: (invoiceItems) =>
     ipcRenderer.invoke("add-invoice-items", invoiceItems),
-  // getInvoiceItems: (invoiceId) =>
-  //   ipcRenderer.invoke("get-invoice-items", invoiceId),
-
   getAllInvoiceItems: (invoiceId) => ipcRenderer.invoke("invoiceItem:getAll", invoiceId),
-
   getAllInvoices: () => ipcRenderer.invoke("invoice:getAll"),
   getInvoiceById: (id) => ipcRenderer.invoke("invoice:getById", id),
   getCustomerbyId: (id) => ipcRenderer.invoke("customer:getById", id),
-
-  getInvoiceItems: (invoiceId) =>
-    ipcRenderer.invoke("get-invoice-items", invoiceId),
+  uploadLedgerToTally: (data, port, tallyVersion) =>
+    ipcRenderer.invoke("ledger-create", data, port, tallyVersion),
+  uploadSalesToTally: (data, port) =>
+    ipcRenderer.invoke("sales-create", data, port),
+  storeTallyUpload: (uploadResponse, bankLedger, uploadData) =>
+    ipcRenderer.invoke(
+      "store-tally-upload",
+      uploadResponse,
+      bankLedger,
+      uploadData
+    ),
 });

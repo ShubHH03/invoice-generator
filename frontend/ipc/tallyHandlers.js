@@ -11,6 +11,7 @@ const {
   buildTallyXmlContra,
   buildTallyPrimeLedgerXml,
   buildTallyERPLedgerXml,
+  buildSalesXml,
 } = require("./utils/buildTallyXml");
 const { fetchLedgersForAllCompanies } = require("./utils/getComapnyAndLedgers");
 
@@ -128,7 +129,7 @@ function registerTallyIpc() {
         if (lineError) {
           console.error(`Transaction ${row.id} Failed: ${lineError}`);
           log.info({ xmlContent });
-          
+
           failedTransactions.push({ id: row.id, error: lineError });
         } else {
           console.log(`Transaction ${row.id} Successful`);
@@ -292,10 +293,10 @@ function registerTallyIpc() {
             failed_reason: isSuccessful
               ? ""
               : JSON.stringify(
-                  uploadResponse.failedTransactions.find(
-                    (failed) => failed.id === transaction.id
-                  ) || "Unknown failure"
-                ),
+                uploadResponse.failedTransactions.find(
+                  (failed) => failed.id === transaction.id
+                ) || "Unknown failure"
+              ),
             bank_ledger: bankLedger || "",
             result: isSuccessful ? 1 : 0,
             createdAt: new Date(),
@@ -412,6 +413,79 @@ function registerTallyIpc() {
         log.error("Error fetching transactions with Tally status:", error);
         throw error;
       }
+    }
+  );
+
+  ipcMain.handle(
+    "sales-create",
+    async (event, tallyUploadData, port) => {
+      const successIds = [];
+      const failedTransactions = [];
+      const parser = new XMLParser(); // XML Parser for response
+
+      log.info({ tallyUploadData });
+      const end = tallyUploadData.length;
+
+      // const end = 2;
+      // const isPrime = tallyVersion === "TallyPrime";
+      for (let i = 0; i < end; i++) {
+        const row = tallyUploadData[i];
+        log.info({ row })
+        tallyUploadData[i].date = "20250401"; // Hardcoded date for now
+
+        const xmlContent = buildSalesXml(row);
+        log.info({ xmlContent })
+        // const xmlContent = isPrime
+        //   ? buildTallyPrimeSalesXml(row)
+        //   : buildTallyERPSalesXml(row);
+        // const xmlContent = buildTallyLedgerXml(row);
+
+        try {
+          const response = await axios.post(
+            `http://localhost:${[port]}`,
+            xmlContent,
+            {
+              headers: { "Content-Type": "application/xml" },
+            }
+          );
+          const xmlResponse = response.data;
+          const parsedResponse = parser.parse(xmlResponse);
+          const lineError = parsedResponse.RESPONSE?.LINEERROR || null;
+
+          if (lineError) {
+            console.error(`Transaction ${row.id} Failed: ${lineError}`);
+            failedTransactions.push({ [row.id]: lineError });
+            console.log({ xmlContent });
+          } else {
+            console.log(`Transaction ${row.id} Successful`);
+            successIds.push(row.id);
+          }
+        } catch (error) {
+          console.error(
+            `Transaction ${row.id} Failed (Server Error): ${error.message}`
+          );
+          console.log({ xmlContent });
+          failedTransactions.push({ id: row.id, error: error.message });
+        }
+      }
+
+      // Outside for loop
+      // Call backend API to update success statuses
+      if (successIds.length > 0) {
+        // const updateResult = await ipcRenderer.invoke("update-transaction-status", successIds);
+        try {
+          const updatedTransactions = await db
+            .update(transactions)
+            .set({ imported: 1 })
+            .where(inArray(transactions.id, successIds));
+        } catch (error) {
+          console.error("Error updating transaction status:", error);
+        }
+      }
+
+      log.info({ successIds, failedTransactions });
+
+      return { success: true, successIds, failedTransactions };
     }
   );
 }

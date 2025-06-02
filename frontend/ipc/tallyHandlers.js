@@ -423,7 +423,7 @@ function registerTallyIpc() {
       const failedTransactions = [];
       const parser = new XMLParser(); // XML Parser for response
 
-      log.info({ tallyUploadData });
+      log.info({ port, tallyUploadData });
       const end = tallyUploadData.length;
 
       // const end = 2;
@@ -431,7 +431,8 @@ function registerTallyIpc() {
       for (let i = 0; i < end; i++) {
         const row = tallyUploadData[i];
         log.info({ row })
-        tallyUploadData[i].date = "20250401"; // Hardcoded date for now
+        tallyUploadData[i].invoiceDate = "20250401"; // Hardcoded date for now
+        tallyUploadData[i].effectiveDate = "20250401"; // Hardcoded date for now
 
         const xmlContent = buildSalesXml(row);
         log.info({ xmlContent })

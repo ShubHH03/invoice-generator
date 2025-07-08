@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Phone, Plus, Mail } from "lucide-react";
+import { Search, Phone, Plus, Mail, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -37,42 +37,10 @@ import {
 } from "../ui/pagination";
 import CustomerForm from "../Elements/CustomerForm";
 
-const customerData = [
-  {
-    name: "John Doe",
-    numberOfInvoices: 5,
-    totalInvoiced: 25000,
-    totalUnpaid: 10000,
-  },
-  {
-    name: "Jane Smith",
-    numberOfInvoices: 3,
-    totalInvoiced: 15000,
-    totalUnpaid: 5000,
-  },
-  {
-    name: "Mike Johnson",
-    numberOfInvoices: 7,
-    totalInvoiced: 35000,
-    totalUnpaid: 12000,
-  },
-  {
-    name: "Sarah Wilson",
-    numberOfInvoices: 4,
-    totalInvoiced: 20000,
-    totalUnpaid: 8000,
-  },
-  {
-    name: "David Brown",
-    numberOfInvoices: 6,
-    totalInvoiced: 30000,
-    totalUnpaid: 15000,
-  },
-];
-
 const Customers = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredData, setFilteredData] = useState(customerData);
+  const [filteredData, setFilteredData] = useState([]);
+  const [customerData, setCustomerData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
@@ -82,19 +50,56 @@ const Customers = () => {
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = customerData.length > 0 ? Object.keys(customerData[0]) : [];
+  // Define which columns to display and in what order
+  const columns = [
+    "customerType",
+    "firstName",
+    "lastName",
+    "companyName",
+    "gstApplicable",
+    "gstin",
+    "billingEmail",
+    "billingContactNo",
+  ];
 
-  // Determine which columns are numeric
-  const numericColumns = columns.filter((column) =>
-    customerData.some((row) => {
-      const value = String(row[column]);
-      return !isNaN(Number.parseFloat(value)) && !value.includes("-");
-    })
-  );
+  // Field mappings for better display
+  const fieldMappings = {
+    customerType: "Customer Type",
+    firstName: "First Name",
+    lastName: "Last Name",
+    companyName: "Company Name",
+    gstApplicable: "GST Applicable",
+    gstin: "GSTIN",
+    billingEmail: "Billing Email",
+    billingContactNo: "Billing Contact No",
+  };
 
   useEffect(() => {
-    setFilteredData(customerData);
+    const fetchCustomers = async () => {
+      setIsLoading(true);
+      try {
+        // Using the electron API from preload
+        const response = await window.electron.getCustomer();
+        console.log("Customers API response:", response);
+
+        if (response.success) {
+          const customersData = response.customers || [];
+          console.log("Customers data:", customersData);
+
+          // No need to format the data as we're using the fields directly
+          setCustomerData(customersData);
+          setFilteredData(customersData);
+        } else {
+          console.error("Failed to fetch customers:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomers();
   }, []);
 
   const handleSearch = (searchValue) => {
@@ -106,8 +111,10 @@ const Customers = () => {
     }
 
     const filtered = customerData.filter((row) =>
-      Object.entries(row).some(([key, value]) =>
-        String(value).toLowerCase().includes(searchValue.toLowerCase())
+      Object.entries(row).some(
+        ([key, value]) =>
+          value !== null &&
+          String(value).toLowerCase().includes(searchValue.toLowerCase())
       )
     );
 
@@ -116,16 +123,23 @@ const Customers = () => {
   };
 
   // Handle saving new customer
-  const handleSaveCustomer = (customerData) => {
-    // Process the new customer data
-    console.log("New customer data:", customerData);
+  const handleSaveCustomer = async (customerData) => {
+    try {
+      // Here you would typically call an API to save the customer
+      // For example: const result = await window.electron.addCustomer(customerData);
 
-    // Here you would typically add the customer to your data source
-    // For example:
-    // setCustomerData(prevData => [...prevData, customerData]);
-    // refreshCustomerList();
+      // Refresh the customer list after adding
+      const response = await window.electron.getCustomer();
+      if (response.success) {
+        setCustomerData(response.customers || []);
+        setFilteredData(response.customers || []);
+      }
 
-    // Additional logic for saving customer to backend, etc.
+      // Close the form
+      setCustomerFormOpen(false);
+    } catch (error) {
+      console.error("Error saving customer:", error);
+    }
   };
 
   const handleCategorySelect = (category) => {
@@ -148,9 +162,10 @@ const Customers = () => {
     if (selectedCategories.length === 0) {
       setFilteredData(customerData);
     } else {
-      const filtered = customerData.filter((row) =>
-        selectedCategories.includes(String(row[currentFilterColumn]))
-      );
+      const filtered = customerData.filter((row) => {
+        const value = row[currentFilterColumn];
+        return value !== null && selectedCategories.includes(String(value));
+      });
       setFilteredData(filtered);
     }
     setCurrentPage(1);
@@ -166,7 +181,15 @@ const Customers = () => {
   };
 
   const getUniqueValues = (columnName) => {
-    return [...new Set(customerData.map((row) => String(row[columnName])))];
+    return [
+      ...new Set(
+        customerData
+          .map((row) =>
+            row[columnName] !== null ? String(row[columnName]) : "N/A"
+          )
+          .filter(Boolean)
+      ),
+    ];
   };
 
   const getFilteredUniqueValues = (columnName) => {
@@ -214,7 +237,7 @@ const Customers = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="space-y-2">
-              <CardTitle>Recent Customers</CardTitle>
+              <CardTitle>Customers</CardTitle>
               <CardDescription>View and manage your customers</CardDescription>
             </div>
             <div className="relative flex items-center gap-2">
@@ -230,9 +253,9 @@ const Customers = () => {
                 onClick={() => setCustomerFormOpen(true)}
               >
                 <Plus className="h-5 w-5" />
-                New
+                New Customer
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>
@@ -240,59 +263,75 @@ const Customers = () => {
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={column}>
-                      <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() +
-                          column.slice(1).toLowerCase()}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setCurrentFilterColumn(column);
-                            setSelectedCategories([]);
-                            setCategorySearchTerm("");
-                            setFilterModalOpen(true);
-                          }}
-                        >
-                          ▼
-                        </Button>
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentData.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading customers...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center">
-                      No matching results found
-                    </TableCell>
+                    {columns.map((column) => (
+                      <TableHead key={column}>
+                        <div className="flex items-center gap-2">
+                          {fieldMappings[column] || column}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setCurrentFilterColumn(column);
+                              setSelectedCategories([]);
+                              setCategorySearchTerm("");
+                              setFilterModalOpen(true);
+                            }}
+                          >
+                            ▼
+                          </Button>
+                        </div>
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ) : (
-                  currentData.map((row, index) => (
-                    <TableRow key={index}>
-                      {columns.map((column) => (
-                        <TableCell
-                          key={column}
-                          className="max-w-[200px] group relative"
-                        >
-                          <div className="truncate">{row[column]}</div>
-                        </TableCell>
-                      ))}
+                </TableHeader>
+                <TableBody>
+                  {currentData.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-center py-10"
+                      >
+                        No customers found
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    currentData.map((row, index) => (
+                      <TableRow
+                        key={row.id || index}
+                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        {columns.map((column) => (
+                          <TableCell
+                            key={column}
+                            className="max-w-[200px] group relative"
+                          >
+                            <div className="truncate">
+                              {row[column] !== null && row[column] !== undefined
+                                ? row[column]
+                                : "N/A"}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {!isLoading && totalPages > 1 && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
@@ -346,14 +385,18 @@ const Customers = () => {
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
+              <DialogTitle>
+                Filter{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}
+              </DialogTitle>
               <p className="text-sm text-gray-600">
-                Make changes to your filter here. Click save when you're done.
+                Select values to filter by{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}.
               </p>
             </DialogHeader>
             <Input
               type="text"
-              placeholder="Search..."
+              placeholder="Search categories..."
               value={categorySearchTerm}
               onChange={(e) => setCategorySearchTerm(e.target.value)}
               className="mb-4"
@@ -374,21 +417,21 @@ const Customers = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={handleSelectAll}>
-                Select All
+                {getFilteredUniqueValues(currentFilterColumn).every((cat) =>
+                  selectedCategories.includes(cat)
+                )
+                  ? "Deselect All"
+                  : "Select All"}
               </Button>
-              <Button
-                variant="default"
-                className="bg-black hover:bg-gray-800"
-                onClick={handleColumnFilter}
-              >
-                Save changes
+              <Button variant="default" onClick={handleColumnFilter}>
+                Apply Filter
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Customer Form Dialog - Using the reusable component */}
+      {/* Customer Form Dialog */}
       <CustomerForm
         open={customerFormOpen}
         onOpenChange={setCustomerFormOpen}

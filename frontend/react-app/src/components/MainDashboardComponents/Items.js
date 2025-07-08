@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { Search, Loader2, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "../ui/table";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 import { Checkbox } from "../ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -18,48 +37,76 @@ import {
 } from "../ui/pagination";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-
-const itemData = [
-  {
-    name: "Web Development",
-    description: "Full stack web development services",
-    rate: 100
-  },
-  {
-    name: "UI/UX Design",
-    description: "User interface and experience design",
-    rate: 85
-  },
-  {
-    name: "Cloud Hosting",
-    description: "AWS cloud hosting services",
-    rate: 150
-  },
-  {
-    name: "Database Management",
-    description: "Database administration and optimization",
-    rate: 95
-  },
-];
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import ItemForm from "../Elements/ItemForm";
 
 const Items = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredData, setFilteredData] = useState(itemData);
+  const [filteredData, setFilteredData] = useState([]);
+  const [itemData, setItemData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [customerType, setCustomerType] = useState("business");
+  const [isLoading, setIsLoading] = useState(true);
   const [itemFormOpen, setItemFormOpen] = useState(false);
-  const [itemType, setItemType] = useState("goods");
+  const [columns, setColumns] = useState([]);
+  const [refreshCounter, setRefreshCounter] = useState(0); // New state for forcing refresh
+
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = itemData.length > 0 ? Object.keys(itemData[0]) : [];
+  // Moved fetchItems out of useEffect so it can be called from other functions
+  const fetchItems = async () => {
+    setIsLoading(true);
+    try {
+      // Using the electron API from preload.js to get items
+      const response = await window.electron.getItem();
+      console.log("Items API response:", response);
+
+      if (response.success) {
+        const itemsData = response.items || [];
+        console.log("Items data:", itemsData);
+
+        // Format items if needed
+        const formattedItems = itemsData.map((item) => ({
+          id: item.id,
+          name: item.name,
+          hsnSacCode: item.hsnSacCode || "", // Add HSN/SAC code field
+          description: item.description || "",
+          rate:
+            item.sellingPrice !== undefined ? parseFloat(item.sellingPrice) : 0,
+          unit: item.unit || "",
+        }));
+
+        // Set the data
+        setItemData(formattedItems);
+        setFilteredData(formattedItems);
+
+        // Dynamically determine columns from first item
+        if (formattedItems.length > 0) {
+          setColumns(Object.keys(formattedItems[0]));
+        }
+      } else {
+        console.error("Failed to fetch items:", response.error);
+      }
+    } catch (error) {
+      console.error("Error fetching items:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Using refreshCounter as a dependency to trigger re-fetch
+  useEffect(() => {
+    fetchItems();
+  }, [refreshCounter]);
 
   // Determine which columns are numeric
   const numericColumns = columns.filter((column) =>
@@ -68,10 +115,6 @@ const Items = () => {
       return !isNaN(Number.parseFloat(value)) && !value.includes("-");
     })
   );
-
-  useEffect(() => {
-    setFilteredData(itemData);
-  }, []);
 
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
@@ -82,7 +125,7 @@ const Items = () => {
     }
 
     const filtered = itemData.filter((row) =>
-      Object.entries(row).some(([key, value]) => 
+      Object.entries(row).some(([key, value]) =>
         String(value).toLowerCase().includes(searchValue.toLowerCase())
       )
     );
@@ -93,13 +136,17 @@ const Items = () => {
 
   const handleCategorySelect = (category) => {
     setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((cat) => cat !== category) : [...prev, category]
+      prev.includes(category)
+        ? prev.filter((cat) => cat !== category)
+        : [...prev, category]
     );
   };
 
   const handleSelectAll = () => {
     const visibleCategories = getFilteredUniqueValues(currentFilterColumn);
-    const allSelected = visibleCategories.every((cat) => selectedCategories.includes(cat));
+    const allSelected = visibleCategories.every((cat) =>
+      selectedCategories.includes(cat)
+    );
     setSelectedCategories(allSelected ? [] : visibleCategories);
   };
 
@@ -107,7 +154,7 @@ const Items = () => {
     if (selectedCategories.length === 0) {
       setFilteredData(itemData);
     } else {
-      const filtered = itemData.filter((row) => 
+      const filtered = itemData.filter((row) =>
         selectedCategories.includes(String(row[currentFilterColumn]))
       );
       setFilteredData(filtered);
@@ -125,13 +172,13 @@ const Items = () => {
   };
 
   const getUniqueValues = (columnName) => {
-    return [...new Set(itemData.map((row) => String(row[columnName])))];
+    return [...new Set(itemData.map((row) => String(row[columnName] || "")))];
   };
 
   const getFilteredUniqueValues = (columnName) => {
     const uniqueValues = getUniqueValues(columnName);
     if (!categorySearchTerm) return uniqueValues;
-    return uniqueValues.filter((value) => 
+    return uniqueValues.filter((value) =>
       value.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
   };
@@ -167,6 +214,35 @@ const Items = () => {
     return pageNumbers;
   };
 
+  // Handler for saving the item data - FIXED: uses refreshCounter to trigger a re-fetch
+  const handleSaveItem = async (formData) => {
+    try {
+      setItemFormOpen(false);
+      setIsLoading(true);
+
+      const response = await window.electron.saveItem(formData);
+
+      if (response.success) {
+        console.log("Item saved successfully");
+        await fetchItems(); // Refresh the list only after a successful save
+      } else {
+        console.error("Failed to save item:", response.error);
+      }
+    } catch (error) {
+      console.error("Error saving item:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format column display name
+  const formatColumnName = (columnName) => {
+    if (columnName === "hsnSacCode") return "HSN/SAC Code";
+    return (
+      columnName.charAt(0).toUpperCase() + columnName.slice(1).toLowerCase()
+    );
+  };
+
   return (
     <div className="p-8 pt-4 space-y-8">
       <Card>
@@ -186,9 +262,9 @@ const Items = () => {
               />
               <Button variant="default" onClick={() => setItemFormOpen(true)}>
                 <Plus className="h-5 w-5" />
-                New
+                New Item
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>
@@ -202,7 +278,7 @@ const Items = () => {
                   {columns.map((column) => (
                     <TableHead key={column}>
                       <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() + column.slice(1).toLowerCase()}
+                        {formatColumnName(column)}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -222,7 +298,18 @@ const Items = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentData.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="text-center py-8"
+                    >
+                      <div className="flex justify-center">
+                        <Loader2 className="animate-spin h-6 w-6" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : currentData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="text-center">
                       No matching results found
@@ -230,10 +317,18 @@ const Items = () => {
                   </TableRow>
                 ) : (
                   currentData.map((row, index) => (
-                    <TableRow key={index}>
+                    <TableRow
+                      key={row.id || index}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"} // Alternating row colors
+                    >
                       {columns.map((column) => (
-                        <TableCell key={column} className="max-w-[200px] group relative">
-                          <div className="truncate">{row[column]}</div>
+                        <TableCell
+                          key={column}
+                          className="max-w-[200px] group relative"
+                        >
+                          <div className="truncate">
+                            {row[column] !== undefined ? row[column] : ""}
+                          </div>
                         </TableCell>
                       ))}
                     </TableRow>
@@ -244,14 +339,19 @@ const Items = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalPages > 1 && !isLoading && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      className={cn("cursor-pointer", currentPage === 1 && "pointer-events-none opacity-50")}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === 1 && "pointer-events-none opacity-50"
+                      )}
                     />
                   </PaginationItem>
                   {getPageNumbers().map((pageNumber, index) => (
@@ -271,8 +371,14 @@ const Items = () => {
                   ))}
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                      className={cn("cursor-pointer", currentPage === totalPages && "pointer-events-none opacity-50")}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === totalPages &&
+                          "pointer-events-none opacity-50"
+                      )}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -287,8 +393,12 @@ const Items = () => {
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
-              <p className="text-sm text-gray-600">Make changes to your filter here. Click save when you're done.</p>
+              <DialogTitle>
+                Filter {formatColumnName(currentFilterColumn)}
+              </DialogTitle>
+              <p className="text-sm text-gray-600">
+                Make changes to your filter here. Click save when you're done.
+              </p>
             </DialogHeader>
             <Input
               type="text"
@@ -299,7 +409,10 @@ const Items = () => {
             />
             <div className="max-h-60 overflow-y-auto space-y-[1px] mb-4">
               {getFilteredUniqueValues(currentFilterColumn).map((value) => (
-                <label key={value} className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer">
+                <label
+                  key={value}
+                  className="flex items-center gap-1 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                >
                   <Checkbox
                     checked={selectedCategories.includes(value)}
                     onCheckedChange={() => handleCategorySelect(value)}
@@ -312,7 +425,11 @@ const Items = () => {
               <Button variant="ghost" onClick={handleSelectAll}>
                 Select All
               </Button>
-              <Button variant="default" className="bg-black hover:bg-gray-800" onClick={handleColumnFilter}>
+              <Button
+                variant="default"
+                className="bg-black hover:bg-gray-800"
+                onClick={handleColumnFilter}
+              >
                 Save changes
               </Button>
             </div>
@@ -326,88 +443,15 @@ const Items = () => {
           <Loader2 className="animate-spin h-8 w-8 text-[#3498db]" />
         </div>
       )}
-      <Dialog open={itemFormOpen} onOpenChange={setItemFormOpen}>
-      <DialogContent className="max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create New Item</DialogTitle>
-        </DialogHeader>
-        <form className="space-y-4">
-          {/* Item Type */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Item Type</Label>
-            </div>
-            <div className="flex space-x-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="itemType"
-                  value="goods"
-                  checked={itemType === "goods"}
-                  onChange={() => setItemType("goods")}
-                />
-                <span>Goods</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="itemType"
-                  value="service"
-                  checked={itemType === "service"}
-                  onChange={() => setItemType("service")}
-                />
-                <span>Service</span>
-              </label>
-            </div>
-          </div>
 
-          {/* Item Name */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Item Name</Label>
-            </div>
-            <Input placeholder="" />
-          </div>
-
-          {/* Unit */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Unit Type</Label>
-            </div>
-            <Input placeholder="e.g. Box" />
-          </div>
-
-          {/* Selling Price */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Selling Price</Label>
-            </div>
-            <div className="flex">
-              <div className="bg-gray-100 border border-r-0 rounded-l px-3 flex items-center text-gray-500">
-                INR
-              </div>
-              <Input className="rounded-l-none" placeholder="" />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-1">
-              <Label className="text-sm font-medium">Description</Label>
-            </div>
-            <Textarea placeholder="" rows={3} />
-          </div>
-        </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setItemFormOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="default">Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-   </div>
- );
+      {/* Item Form Component */}
+      <ItemForm
+        open={itemFormOpen}
+        onOpenChange={setItemFormOpen}
+        onSave={handleSaveItem}
+      />
+    </div>
+  );
 };
 
 export default Items;

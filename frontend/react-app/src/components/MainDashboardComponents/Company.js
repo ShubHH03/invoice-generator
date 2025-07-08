@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Phone, Mail, Calendar } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,13 +19,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 import { Checkbox } from "../ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -35,91 +29,145 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../ui/pagination";
-import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Textarea } from "../ui/textarea";
-
-const customerData = [
-  {
-    name: "John Doe",
-    companyName: "ABC Corp",
-    email: "john@abccorp.com",
-    phone: "+1-234-567-8901",
-  },
-  {
-    name: "Jane Smith",
-    companyName: "XYZ Industries",
-    email: "jane@xyz.com",
-    phone: "+1-234-567-8902",
-  },
-  {
-    name: "Mike Johnson",
-    companyName: "Tech Solutions",
-    email: "mike@techsol.com",
-    phone: "+1-234-567-8903",
-  },
-  {
-    name: "Sarah Wilson",
-    companyName: "Global Services",
-    email: "sarah@global.com",
-    phone: "+1-234-567-8904",
-  },
-  {
-    name: "David Brown",
-    companyName: "Innovation Ltd",
-    email: "david@innovation.com",
-    phone: "+1-234-567-8905",
-  },
-];
+import CompanyForm from "../Elements/CompanyForm";
 
 const Company = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredData, setFilteredData] = useState(customerData);
+  const [filteredData, setFilteredData] = useState([]);
+  const [companyData, setCompanyData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [currentFilterColumn, setCurrentFilterColumn] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [companyType, setCompanyType] = useState("manufacturer");
-  const [gstApplicable, setGstApplicable] = useState();
-  const [invoiceDueDays, setInvoiceDueDays] = useState("30"); // Default 30 days`
-
+  const [companyFormOpen, setCompanyFormOpen] = useState(false);
+  const [columns, setColumns] = useState([]);
   const rowsPerPage = 10;
 
-  // Get dynamic columns from first data item
-  const columns = customerData.length > 0 ? Object.keys(customerData[0]) : [];
+  // Display field mappings
+  const fieldMappings = {
+    companyName: "Company Name",
+    companyType: "Company Type",
+    email: "Email",
+    contactNo: "Contact No",
+    gstApplicable: "GST Applicable",
+    gstin: "GSTIN",
+    invoiceCount: "Total Invoices",
+    totalInvoiceAmount: "Total Invoice Value (₹)",
+  };
 
-  // Determine which columns are numeric
-  const numericColumns = columns.filter((column) =>
-    customerData.some((row) => {
-      const value = String(row[column]);
-      return !isNaN(Number.parseFloat(value)) && !value.includes("-");
-    })
-  );
+  // Column order (specify which fields to display and in what order)
+  const columnOrder = [
+    "companyName",
+    "companyType",
+    "email",
+    "contactNo",
+    "gstApplicable",
+    "gstin",
+    "invoiceCount",
+    "totalInvoiceAmount",
+  ];
 
+  // useEffect(() => {
+  //   const fetchCompanies = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const response = await window.electron.invoke(
+  //         "get-company-with-invoices"
+  //       );
+  //       console.log("Companies with invoices response:", response);
+
+  //       if (response.success) {
+  //         const companiesData = response.companies || [];
+  //         console.log("Companies data with invoice totals:", companiesData);
+
+  //         // Format companies with invoice data
+  //         const formattedCompanies = companiesData.map((company) => ({
+  //           id: company.id,
+  //           companyName: company.companyName || "",
+  //           companyType: company.companyType || "",
+  //           email: company.email || "",
+  //           contactNo: company.contactNo || "",
+  //           gstApplicable: company.gstApplicable || "No",
+  //           gstin: company.gstin || "N/A",
+  //           invoiceCount: company.invoiceCount || 0,
+  //           totalInvoiceAmount: parseFloat(company.totalInvoiceAmount) || 0,
+  //         }));
+
+  //         // Set the data
+  //         setCompanyData(formattedCompanies);
+  //         setFilteredData(formattedCompanies);
+
+  //         // Set columns based on our predefined order
+  //         setColumns(columnOrder);
+  //       } else {
+  //         console.error("Failed to fetch companies:", response.error);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching companies:", error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchCompanies();
+  // }, []);
   useEffect(() => {
-    setFilteredData(customerData);
+    const fetchCompanies = async () => {
+      setIsLoading(true);
+      try {
+        // Using the electron API from preload.js to get companies
+        const response = await window.electron.getCompany();
+        console.log("Companies API response:", response);
+
+        if (response.success) {
+          const companiesData = response.companies || [];
+          console.log("Companies data:", companiesData);
+
+          // Format companies if needed
+          const formattedCompanies = companiesData.map((company) => ({
+            id: company.id,
+            companyName: company.companyName || "",
+            companyType: company.companyType || "",
+            email: company.email || "",
+            contactNo: company.contactNo || "",
+            gstApplicable: company.gstApplicable || "No",
+            gstin: company.gstin || "N/A",
+          }));
+
+          // Set the data
+          setCompanyData(formattedCompanies);
+          setFilteredData(formattedCompanies);
+
+          // Set columns based on our predefined order
+          setColumns(columnOrder);
+        } else {
+          console.error("Failed to fetch companies:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanies();
   }, []);
 
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
     if (searchValue === "") {
-      setFilteredData(customerData);
+      setFilteredData(companyData);
       setCurrentPage(1);
       return;
     }
 
-    const filtered = customerData.filter((row) =>
-      Object.entries(row).some(([key, value]) =>
-        String(value).toLowerCase().includes(searchValue.toLowerCase())
+    const filtered = companyData.filter((row) =>
+      Object.entries(row).some(
+        ([key, value]) =>
+          value !== null &&
+          String(value).toLowerCase().includes(searchValue.toLowerCase())
       )
     );
 
@@ -145,11 +193,12 @@ const Company = () => {
 
   const handleColumnFilter = () => {
     if (selectedCategories.length === 0) {
-      setFilteredData(customerData);
+      setFilteredData(companyData);
     } else {
-      const filtered = customerData.filter((row) =>
-        selectedCategories.includes(String(row[currentFilterColumn]))
-      );
+      const filtered = companyData.filter((row) => {
+        const value = row[currentFilterColumn];
+        return value !== null && selectedCategories.includes(String(value));
+      });
       setFilteredData(filtered);
     }
     setCurrentPage(1);
@@ -158,14 +207,22 @@ const Company = () => {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setFilteredData(customerData);
+    setFilteredData(companyData);
     setCurrentPage(1);
     setSelectedCategories([]);
     setCategorySearchTerm("");
   };
 
   const getUniqueValues = (columnName) => {
-    return [...new Set(customerData.map((row) => String(row[columnName])))];
+    return [
+      ...new Set(
+        companyData
+          .map((row) =>
+            row[columnName] !== null ? String(row[columnName]) : "N/A"
+          )
+          .filter(Boolean)
+      ),
+    ];
   };
 
   const getFilteredUniqueValues = (columnName) => {
@@ -174,6 +231,32 @@ const Company = () => {
     return uniqueValues.filter((value) =>
       value.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
+  };
+
+  const handleSaveCompany = async (companyData) => {
+    try {
+      // Call API to save the company
+      // After saving, refresh the companies list
+      const response = await window.electron.getCompany();
+      if (response.success) {
+        setCompanyData(response.companies || []);
+        setFilteredData(response.companies || []);
+      }
+
+      // Close the form
+      setCompanyFormOpen(false);
+    } catch (error) {
+      console.error("Error saving company:", error);
+    }
+  };
+
+  // Format currency values
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(value);
   };
 
   // Pagination calculations
@@ -213,7 +296,7 @@ const Company = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="space-y-2">
-              <CardTitle>Recent Companies</CardTitle>
+              <CardTitle>Companies</CardTitle>
               <CardDescription>View and manage your companies</CardDescription>
             </div>
             <div className="relative flex items-center gap-2">
@@ -226,12 +309,12 @@ const Company = () => {
               />
               <Button
                 variant="default"
-                onClick={() => setCustomerFormOpen(true)}
+                onClick={() => setCompanyFormOpen(true)}
               >
                 <Plus className="h-5 w-5" />
-                New
+                New Company
               </Button>
-              <Button variant="default" onClick={() => clearFilters()}>
+              <Button variant="outline" onClick={() => clearFilters()}>
                 Clear Filters
               </Button>
             </div>
@@ -239,59 +322,79 @@ const Company = () => {
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={column}>
-                      <div className="flex items-center gap-2">
-                        {column.charAt(0).toUpperCase() +
-                          column.slice(1).toLowerCase()}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setCurrentFilterColumn(column);
-                            setSelectedCategories([]);
-                            setCategorySearchTerm("");
-                            setFilterModalOpen(true);
-                          }}
-                        >
-                          ▼
-                        </Button>
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentData.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading companies...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center">
-                      No matching results found
-                    </TableCell>
+                    {columns.map((column) => (
+                      <TableHead key={column}>
+                        <div className="flex items-center gap-2">
+                          {fieldMappings[column] || column}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setCurrentFilterColumn(column);
+                              setSelectedCategories([]);
+                              setCategorySearchTerm("");
+                              setFilterModalOpen(true);
+                            }}
+                          >
+                            ▼
+                          </Button>
+                        </div>
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ) : (
-                  currentData.map((row, index) => (
-                    <TableRow key={index}>
-                      {columns.map((column) => (
-                        <TableCell
-                          key={column}
-                          className="max-w-[200px] group relative"
-                        >
-                          <div className="truncate">{row[column]}</div>
-                        </TableCell>
-                      ))}
+                </TableHeader>
+                <TableBody>
+                  {currentData.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-center py-10"
+                      >
+                        No companies found
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    currentData.map((row, index) => (
+                      <TableRow
+                        key={row.id || index}
+                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        {columns.map((column) => (
+                          <TableCell
+                            key={column}
+                            className="max-w-[200px] group relative"
+                          >
+                            <div className="truncate">
+                              {column === "gstApplicable"
+                                ? row[column] === "Yes"
+                                  ? "Yes"
+                                  : "No"
+                                : column === "totalInvoiceAmount"
+                                ? formatCurrency(row[column])
+                                : row[column] || "N/A"}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {!isLoading && totalPages > 1 && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
@@ -345,9 +448,13 @@ const Company = () => {
         <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Filter {currentFilterColumn}</DialogTitle>
+              <DialogTitle>
+                Filter{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}
+              </DialogTitle>
               <p className="text-sm text-gray-600">
-                Make changes to your filter here. Click save when you're done.
+                Select values to filter by{" "}
+                {fieldMappings[currentFilterColumn] || currentFilterColumn}.
               </p>
             </DialogHeader>
             <Input
@@ -373,240 +480,26 @@ const Company = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={handleSelectAll}>
-                Select All
+                {getFilteredUniqueValues(currentFilterColumn).every((cat) =>
+                  selectedCategories.includes(cat)
+                )
+                  ? "Deselect All"
+                  : "Select All"}
               </Button>
-              <Button
-                variant="default"
-                className="bg-black hover:bg-gray-800"
-                onClick={handleColumnFilter}
-              >
-                Save changes
+              <Button variant="default" onClick={handleColumnFilter}>
+                Apply Filter
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Customer Form Dialog */}
-      <Dialog open={customerFormOpen} onOpenChange={setCustomerFormOpen}>
-        <DialogContent className="max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Create New Company</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4">
-            <div className="flex items-center space-x-4">
-              {/* Label */}
-              <Label className="text-sm font-medium">Company Type</Label>
-
-              {/* Radio Buttons */}
-              <div className="flex space-x-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="companyType"
-                    value="manufacturer"
-                    checked={companyType === "manufacturer"}
-                    onChange={() => setCompanyType("manufacturer")}
-                  />
-                  <span>Manufacturer</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="companyType"
-                    value="trader"
-                    checked={companyType === "trader"}
-                    onChange={() => setCompanyType("trader")}
-                  />
-                  <span>Trader</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="companyType"
-                    value="services"
-                    checked={companyType === "services"}
-                    onChange={() => setCompanyType("services")}
-                  />
-                  <span>Services</span>
-                </label>
-              </div>
-            </div>
-            <div className="flex space-x-4">
-              {/* Company Name */}
-              <div className="flex flex-col space-y-1 w-1/2">
-                <Label className="text-sm font-medium">Company Name</Label>
-                <Input placeholder="Company Name" />
-              </div>
-
-              {/* Currency */}
-              <div className="flex flex-col space-y-1 w-1/2">
-                <Label className="text-sm font-medium">Currency</Label>
-                <Select disabled>
-                  <SelectTrigger>
-                    <SelectValue placeholder="INR - Indian Rupee" />
-                  </SelectTrigger>
-                </Select>
-              </div>
-            </div>
-  
-            {/* Due Date */}
-            {/* <div className="flex flex-col space-y-1">
-              <Label className="text-sm font-medium">
-                Default Invoice Due Date
-              </Label>
-              <Select value={invoiceDueDays} onValueChange={setInvoiceDueDays}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select due period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 Days</SelectItem>
-                  <SelectItem value="30">30 Days</SelectItem>
-                  <SelectItem value="45">45 Days</SelectItem>
-                  <SelectItem value="60">60 Days</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-xs text-gray-500">
-                Days after invoice date
-              </span>
-            </div> */}
-
-            <div className="flex items-center space-x-2 mb-4">
-              <Label className="text-sm font-medium">Is GST Applicable?</Label>
-              <input
-                type="radio"
-                name="gstApplicable"
-                value="yes"
-                onChange={(e) => setGstApplicable(e.target.value === "yes")}
-              />{" "}
-              Yes
-              <input
-                type="radio"
-                name="gstApplicable"
-                value="no"
-                defaultChecked
-                onChange={(e) => setGstApplicable(e.target.value === "yes")}
-              />{" "}
-              No
-            </div>
-
-            {gstApplicable && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1">
-                  <Label className="text-sm font-medium">GSTIN/UIN</Label>
-                  <Input placeholder="GST Number" />
-                </div>
-
-                <div className="flex flex-col space-y-1">
-                  <Label className="text-sm font-medium">State Code</Label>
-                  <Input placeholder="State Code" />
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col space-y-3">
-              <div className="flex flex-col space-y-1">
-                <Label className="text-sm font-medium">Country/Region</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="india">India</SelectItem>
-                    <SelectItem value="us">United States</SelectItem>
-                    <SelectItem value="uk">United Kingdom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex space-x-4 ">
-                <div className="flex flex-col space-y-1 w-1/2">
-                  <Label className="text-sm font-medium">Address Line 1</Label>
-                  <Textarea
-                    placeholder="Street Address, Building Name"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="flex flex-col space-y-1 w-1/2">
-                  <Label className="text-sm font-medium">Address Line 2</Label>
-                  <Textarea placeholder="Locality, Area" rows={2} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1">
-                  <Label className="text-sm font-medium">State</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="maharashtra">Maharashtra</SelectItem>
-                      <SelectItem value="delhi">Delhi</SelectItem>
-                      <SelectItem value="karnataka">Karnataka</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col space-y-1">
-                  <Label className="text-sm font-medium">City</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mumbai">Mumbai</SelectItem>
-                      <SelectItem value="pune">Pune</SelectItem>
-                      <SelectItem value="nagpur">Nagpur</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                {/* Email Address */}
-                <div className="flex flex-col space-y-1 w-1/2">
-                  <div className="flex items-center space-x-1">
-                    <Label className="text-sm font-medium">Email Address</Label>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Mail className="h-4 w-4" />
-                    </div>
-                    <Input
-                      className="pl-10 w-full"
-                      placeholder="Email Address"
-                    />
-                  </div>
-                </div>
-
-                {/* Phone Number */}
-                <div className="flex flex-col space-y-1 w-1/2">
-                  <div className="flex items-center space-x-1">
-                    <Label className="text-sm font-medium">Contact No.</Label>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Phone className="h-4 w-4" />
-                    </div>
-                    <Input className="pl-10 w-full" placeholder="Phone" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setCustomerFormOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="default">Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Company Form Dialog */}
+      <CompanyForm
+        open={companyFormOpen}
+        onOpenChange={setCompanyFormOpen}
+        onSave={handleSaveCompany}
+      />
     </div>
   );
 };
